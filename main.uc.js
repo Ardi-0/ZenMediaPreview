@@ -52,6 +52,10 @@
       position: relative;
       z-index: 2;
     }
+    /* Hide preview when sidebar is collapsed (native compact + StormAnon mod) */
+    #navigator-toolbox:not(:is(:hover, [zen-expanded="true"], [zen-has-hover])) #zsp-wrap.zsp-open {
+      grid-template-rows: 0fr !important;
+    }
     #zsp-wrap.zsp-open.zsp-player-hover {
       margin-bottom: 70px;
     }
@@ -93,47 +97,7 @@
   musicPlayerUI.addEventListener("mouseenter", () => wrap.classList.add("zsp-player-hover"));
   musicPlayerUI.addEventListener("mouseleave", () => wrap.classList.remove("zsp-player-hover"));
 
-  // --- sidebar expand-state detection (works with any expand-on-hover mod) ---
-  // StormAnon / compact mode toggle tab-label opacity between 0 and 1.
-  // Checking computed opacity is more reliable than measuring widths or
-  // reading attributes because it reflects the real rendered state.
-  let sidebarExpanded = true;
-  let sidebarPollRaf = null;
-
-  function updateSidebarState() {
-    const tb = document.getElementById("navigator-toolbox");
-    if (!tb) { sidebarExpanded = true; return; }
-    let expanded = true;
-    // 1. Native zen-expanded attribute
-    if (tb.getAttribute("zen-expanded") === "true") { expanded = true; }
-    // 2. Tab‑label opacity (works with StormAnon & native compact mode)
-    else {
-      try {
-        const label = tb.querySelector(".tab-label-container");
-        if (label) {
-          expanded = parseFloat(getComputedStyle(label).opacity) > 0.1;
-        } else {
-          // Fallback: media‑player width
-          const mu = document.querySelector(MUSIC_PLAYER_SELECTORS);
-          if (mu && mu.isConnected) {
-            expanded = mu.getBoundingClientRect().width > 60;
-          }
-        }
-      } catch (_) { expanded = true; }
-    }
-    if (sidebarExpanded !== expanded) {
-      sidebarExpanded = expanded;
-      updateVisibility();
-    }
-  }
-
-  function pollSidebarState() {
-    if (!isStreaming) { sidebarPollRaf = null; return; }
-    updateSidebarState();
-    sidebarPollRaf = requestAnimationFrame(pollSidebarState);
-  }
-
-  updateSidebarState();
+  // --- state ---------------------------------------------------------------
 
   // --- state ---------------------------------------------------------------
   let isStreaming = false;
@@ -150,8 +114,7 @@
   }
 
   function updateVisibility() {
-    const shouldShow = isStreaming && !sourceTabActive && sidebarExpanded;
-    wrap.classList.toggle("zsp-open", shouldShow);
+    wrap.classList.toggle("zsp-open", isStreaming && !sourceTabActive);
   }
 
   // Minimal controller surface expected by parent-actor.js (unchanged from
@@ -210,7 +173,6 @@
         sourceTabActive = false;
       }
       isStreaming = true;
-      if (!sidebarPollRaf) sidebarPollRaf = requestAnimationFrame(pollSidebarState);
       const info = actorRegistry.get(browsingContext.id);
       if (info) info.startTick(info.win || window);
       updateVisibility();
