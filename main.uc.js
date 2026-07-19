@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name           Zen Media Preview
 // @version        1.0.0
-// @description    Minimal inline video preview docked above the sidebar media controls. Compatible with sidebar-expand-on-hover out of the box because the preview is a real DOM child of the sidebar (no position:fixed, no manual position tracking).
+// @description    Live video preview in the sidebar, docked above media controls. Compatible with sidebar-expand-on-hover and compact mode.
 // ==/UserScript==
 
 (function () {

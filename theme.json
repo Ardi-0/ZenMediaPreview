@@ -1,16 +1,17 @@
 {
   "id": "ZenMediaPreview",
   "name": "Zen Media Preview",
-  "description": "Aperçu vidéo minimal, docké au-dessus des contrôles média de la sidebar. Compatible nativement avec Sidebar Expand on Hover (pas de position:fixed, pas de hack CSS).",
+  "description": "Live video preview in the sidebar, docked above media controls. Compatible with sidebar-expand-on-hover and compact mode. Automatically hides when the sidebar collapses or when Picture-in-Picture is active.",
   "author": "Ardijan",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "scripts": {
     "main.uc.js": {
       "name": "Zen Media Preview",
-      "description": "Insère et gère l'aperçu vidéo dans la sidebar",
+      "description": "Sidebar video preview – canvas, JSWindowActor registration, and UI logic",
       "include": ["chrome://browser/content/browser.xhtml"]
     }
   },
-  "tags": ["picture-in-picture", "media", "sidebar"],
-  "fork": ["zen"]
+  "tags": ["picture-in-picture", "media", "sidebar", "video-preview"],
+  "fork": ["zen"],
+  "homepage": "https://github.com/Ardi-0/ZenMediaPreview"
 }

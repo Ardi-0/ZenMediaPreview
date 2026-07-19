@@ -1,6 +1,6 @@
 const TICK_INTERVAL_MS = 33;
 
-const DEBUG = true; // set to false once confirmed working
+const DEBUG = false;
 const dlog = DEBUG ? (...a) => console.log(...a) : () => {};
 
 export class ZenMediaPreviewParent extends JSWindowActorParent {

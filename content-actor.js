@@ -1,9 +1,7 @@
 const MAX_FRAME_DIMENSION = 480;
 const MAX_FRAMERATE = 30;
 
-// Set to false once things are confirmed working — this logs on every
-// playing/pause/volumechange event on every <video> in every tab.
-const DEBUG = true;
+const DEBUG = false;
 
 export class ZenMediaPreviewChild extends JSWindowActorChild {
   _debug(...args) {
