@@ -42,19 +42,21 @@
   const styleEl = document.createElement("style");
   styleEl.textContent = `
     #zsp-wrap {
-      display: none;
-      margin: 0 6px;
+      display: grid;
+      grid-template-rows: 0fr;
+      transition: grid-template-rows ${ANIM_MS}ms ease;
+      min-height: 0;
     }
     #zsp-wrap.zsp-open {
-      display: grid;
       grid-template-rows: 1fr;
-      transition: grid-template-rows ${ANIM_MS}ms ease;
+      margin: 0 6px;
       position: relative;
       z-index: 2;
     }
     /* Hide preview when sidebar is collapsed (native compact + StormAnon mod) */
     #navigator-toolbox:not(:is(:hover, [zen-expanded="true"], [zen-has-hover])) #zsp-wrap.zsp-open {
-      display: none !important;
+      grid-template-rows: 0fr !important;
+      margin: 0 !important;
     }
     #zsp-wrap.zsp-open.zsp-player-hover {
       margin-bottom: 70px;
