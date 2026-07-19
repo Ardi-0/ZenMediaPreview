@@ -1,6 +1,6 @@
 const TICK_INTERVAL_MS = 33;
 
-const DEBUG = false;
+const DEBUG = true;
 const dlog = DEBUG ? (...a) => console.log(...a) : () => {};
 
 export class ZenSidebarPiPParent extends JSWindowActorParent {

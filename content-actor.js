@@ -1,7 +1,7 @@
 const MAX_FRAME_DIMENSION = 480;
 const MAX_FRAMERATE = 30;
 
-const DEBUG = false;
+const DEBUG = true;
 
 export class ZenSidebarPiPChild extends JSWindowActorChild {
   _debug(...args) {
