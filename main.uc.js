@@ -78,6 +78,34 @@
   wrap.appendChild(inner);
   musicPlayerUI.parentNode.insertBefore(wrap, musicPlayerUI);
 
+  // --- sidebar expand state (compat: compact mode + expand-on-hover mods)
+  let sidebarExpanded = true;
+
+  function updateSidebarState() {
+    const tb = document.getElementById("navigator-toolbox");
+    if (!tb) { sidebarExpanded = true; return; }
+    const expanded = tb.getAttribute("zen-expanded") === "true";
+    const hovered = tb.hasAttribute("zen-has-hover");
+    // Fallback: check actual width to detect collapsed sidebar (compact mode + mods)
+    let widthCheck = true;
+    try {
+      const r = tb.getBoundingClientRect();
+      if (r.width > 0 && r.width < 50) widthCheck = false;
+    } catch (_) {}
+    sidebarExpanded = expanded || hovered || widthCheck;
+    updateVisibility();
+  }
+
+  const tb = document.getElementById("navigator-toolbox");
+  if (tb) {
+    tb.addEventListener("mouseenter", updateSidebarState);
+    tb.addEventListener("mouseleave", updateSidebarState);
+    new MutationObserver(() => updateSidebarState()).observe(tb, {
+      attributes: true,
+      attributeFilter: ["zen-expanded", "zen-has-hover"],
+    });
+  }
+
   // --- state ---------------------------------------------------------------
   let isStreaming = false;
   let sourceTabActive = false;
@@ -93,7 +121,7 @@
   }
 
   function updateVisibility() {
-    const shouldShow = isStreaming && !sourceTabActive;
+    const shouldShow = isStreaming && !sourceTabActive && sidebarExpanded;
     wrap.classList.toggle("zsp-open", shouldShow);
   }
 
@@ -182,9 +210,13 @@
     log("resource mapped to:", modUri.spec, "exists:", modDir.exists());
 
     ChromeUtils.registerWindowActor(ACTOR_NAME, {
-      parent: { esModuleURI: `resource://${RES_KEY}/parent-actor.js` },
+      parent: {
+        esModuleURI: `resource://${RES_KEY}/parent-actor.js`,
+        className: "ZenSidebarPiPParent",
+      },
       child: {
         esModuleURI: `resource://${RES_KEY}/content-actor.js`,
+        className: "ZenSidebarPiPChild",
         events: {
           playing: { capture: true, mozSystemGroup: true },
           pause: { capture: true, mozSystemGroup: true },
