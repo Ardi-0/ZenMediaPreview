@@ -93,6 +93,33 @@
   musicPlayerUI.addEventListener("mouseenter", () => wrap.classList.add("zsp-player-hover"));
   musicPlayerUI.addEventListener("mouseleave", () => wrap.classList.remove("zsp-player-hover"));
 
+  // --- sidebar expand-state detection (compact mode + expand-on-hover) ------
+  let sidebarExpanded = true;
+
+  function updateSidebarState() {
+    const tb = document.getElementById("navigator-toolbox");
+    if (!tb) { sidebarExpanded = true; return; }
+    const exp = tb.getAttribute("zen-expanded") === "true";
+    const hov = tb.hasAttribute("zen-has-hover");
+    let wCheck = true;
+    try {
+      const r = tb.getBoundingClientRect();
+      if (r.width > 0 && r.width < 50) wCheck = false;
+    } catch (_) {}
+    sidebarExpanded = exp || hov || wCheck;
+    updateVisibility();
+  }
+
+  const tb = document.getElementById("navigator-toolbox");
+  if (tb) {
+    tb.addEventListener("mouseenter", updateSidebarState);
+    tb.addEventListener("mouseleave", updateSidebarState);
+    new MutationObserver(() => updateSidebarState()).observe(tb, {
+      attributes: true,
+      attributeFilter: ["zen-expanded", "zen-has-hover"],
+    });
+  }
+
   // --- state ---------------------------------------------------------------
   let isStreaming = false;
   let sourceTabActive = false;
@@ -108,7 +135,7 @@
   }
 
   function updateVisibility() {
-    const shouldShow = isStreaming && !sourceTabActive;
+    const shouldShow = isStreaming && !sourceTabActive && sidebarExpanded;
     wrap.classList.toggle("zsp-open", shouldShow);
   }
 
