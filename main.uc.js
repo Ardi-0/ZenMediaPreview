@@ -97,6 +97,17 @@
   musicPlayerUI.addEventListener("mouseenter", () => wrap.classList.add("zsp-player-hover"));
   musicPlayerUI.addEventListener("mouseleave", () => wrap.classList.remove("zsp-player-hover"));
 
+  // Re-check visibility whenever the media player's hidden/display state changes.
+  const mpObserver = new MutationObserver(() => updateVisibility());
+  mpObserver.observe(musicPlayerUI, { attributes: true, attributeFilter: ["hidden", "style"] });
+  // Also watch the parent for the player being added/removed.
+  if (musicPlayerUI.parentNode) {
+    new MutationObserver(() => updateVisibility()).observe(musicPlayerUI.parentNode, {
+      childList: true,
+      subtree: false,
+    });
+  }
+
   // --- state ---------------------------------------------------------------
   let isStreaming = false;
   let sourceTabActive = false;
@@ -113,7 +124,10 @@
 
   function mediaPlayerVisible() {
     try {
-      return musicPlayerUI && musicPlayerUI.isConnected && !musicPlayerUI.hidden && !musicPlayerUI.hasAttribute("hidden");
+      const mu = document.querySelector(MUSIC_PLAYER_SELECTORS);
+      if (!mu || !mu.isConnected) return false;
+      if (mu.hidden || mu.hasAttribute("hidden")) return false;
+      return getComputedStyle(mu).display !== "none";
     } catch (_) { return true; }
   }
 
