@@ -98,8 +98,6 @@
   musicPlayerUI.addEventListener("mouseleave", () => wrap.classList.remove("zsp-player-hover"));
 
   // --- state ---------------------------------------------------------------
-
-  // --- state ---------------------------------------------------------------
   let isStreaming = false;
   let sourceTabActive = false;
   let sourceBC = null;
@@ -113,8 +111,14 @@
     wrap.style.setProperty("--zsp-aspect", `${w} / ${h}`);
   }
 
+  function mediaPlayerVisible() {
+    try {
+      return musicPlayerUI && musicPlayerUI.isConnected && !musicPlayerUI.hidden && !musicPlayerUI.hasAttribute("hidden");
+    } catch (_) { return true; }
+  }
+
   function updateVisibility() {
-    wrap.classList.toggle("zsp-open", isStreaming && !sourceTabActive);
+    wrap.classList.toggle("zsp-open", isStreaming && !sourceTabActive && mediaPlayerVisible());
   }
 
   // Minimal controller surface expected by parent-actor.js (unchanged from
