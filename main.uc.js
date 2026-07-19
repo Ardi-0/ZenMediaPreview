@@ -42,19 +42,19 @@
   const styleEl = document.createElement("style");
   styleEl.textContent = `
     #zsp-wrap {
-      display: grid;
-      grid-template-rows: 0fr;
-      transition: grid-template-rows ${ANIM_MS}ms ease;
+      display: none;
       margin: 0 6px;
     }
     #zsp-wrap.zsp-open {
+      display: grid;
       grid-template-rows: 1fr;
+      transition: grid-template-rows ${ANIM_MS}ms ease;
       position: relative;
       z-index: 2;
     }
     /* Hide preview when sidebar is collapsed (native compact + StormAnon mod) */
     #navigator-toolbox:not(:is(:hover, [zen-expanded="true"], [zen-has-hover])) #zsp-wrap.zsp-open {
-      grid-template-rows: 0fr !important;
+      display: none !important;
     }
     #zsp-wrap.zsp-open.zsp-player-hover {
       margin-bottom: 70px;
