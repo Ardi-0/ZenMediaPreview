@@ -94,24 +94,29 @@
   musicPlayerUI.addEventListener("mouseleave", () => wrap.classList.remove("zsp-player-hover"));
 
   // --- sidebar expand-state detection (works with any expand-on-hover mod) ---
-  // When the sidebar is collapsed the media player is ~34 px wide; when
-  // expanded it is ~300 px.  Watching the actual width is more reliable than
-  // checking attributes (StormAnon mod uses clip-path, not attribute swaps).
+  // Polls the media-player width every frame while streaming —
+  // more reliable than ResizeObserver for CSS-clipped transitions.
   let sidebarExpanded = true;
+  let sidebarPollRaf = null;
 
   function updateSidebarState() {
     const mu = document.querySelector(MUSIC_PLAYER_SELECTORS);
     if (!mu || !mu.isConnected) { sidebarExpanded = true; return; }
     try {
       const w = mu.getBoundingClientRect().width;
+      const was = sidebarExpanded;
       sidebarExpanded = w > 60;
+      if (was !== sidebarExpanded) updateVisibility();
     } catch (_) { sidebarExpanded = true; }
-    updateVisibility();
   }
 
-  try {
-    new ResizeObserver(() => updateSidebarState()).observe(musicPlayerUI);
-  } catch (_) {}
+  function pollSidebarState() {
+    if (!isStreaming) { sidebarPollRaf = null; return; }
+    updateSidebarState();
+    sidebarPollRaf = requestAnimationFrame(pollSidebarState);
+  }
+
+  updateSidebarState();
 
   // --- state ---------------------------------------------------------------
   let isStreaming = false;
@@ -188,6 +193,7 @@
         sourceTabActive = false;
       }
       isStreaming = true;
+      if (!sidebarPollRaf) sidebarPollRaf = requestAnimationFrame(pollSidebarState);
       const info = actorRegistry.get(browsingContext.id);
       if (info) info.startTick(info.win || window);
       updateVisibility();
