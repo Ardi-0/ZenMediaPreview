@@ -1,3 +1,5 @@
+console.log("[ZenMediaPreview/DEBUG] content-actor.js MODULE LOADED");
+
 const MAX_FRAME_DIMENSION = 480;
 const MAX_FRAMERATE = 30;
 

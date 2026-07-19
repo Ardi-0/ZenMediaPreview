@@ -1,3 +1,5 @@
+console.log("[ZenMediaPreview/DEBUG] parent-actor.js MODULE LOADED");
+
 const TICK_INTERVAL_MS = 33;
 
 const DEBUG = true;
