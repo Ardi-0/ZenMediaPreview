@@ -45,12 +45,15 @@
       display: grid;
       grid-template-rows: 0fr;
       transition: grid-template-rows ${ANIM_MS}ms ease;
-      margin: 0 6px 4px;
+      margin: 0 6px;
     }
     #zsp-wrap.zsp-open {
       grid-template-rows: 1fr;
       position: relative;
       z-index: 2;
+    }
+    #zsp-wrap.zsp-open.zsp-player-hover {
+      margin-bottom: 70px;
     }
     #zsp-inner {
       overflow: hidden;
@@ -84,6 +87,11 @@
   inner.appendChild(canvas);
   wrap.appendChild(inner);
   musicPlayerUI.parentNode.insertBefore(wrap, musicPlayerUI);
+
+  // When hovering the media player it expands upward — push the preview up
+  // to prevent overlap.
+  musicPlayerUI.addEventListener("mouseenter", () => wrap.classList.add("zsp-player-hover"));
+  musicPlayerUI.addEventListener("mouseleave", () => wrap.classList.remove("zsp-player-hover"));
 
   // --- state ---------------------------------------------------------------
   let isStreaming = false;
