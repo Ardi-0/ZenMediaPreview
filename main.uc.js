@@ -45,21 +45,28 @@
       display: grid;
       grid-template-rows: 0fr;
       transition: grid-template-rows ${ANIM_MS}ms ease;
-      margin: 0 6px;
+      margin: 0 6px 4px;
     }
     #zsp-wrap.zsp-open {
       grid-template-rows: 1fr;
+      position: relative;
+      z-index: 2;
     }
     #zsp-inner {
       overflow: hidden;
       min-height: 0;
       border-radius: var(--zen-border-radius, 8px);
+      background: var(--lwt-accent-color-inactive, var(--toolbar-bgcolor, #1c1c1c));
     }
     #zsp-canvas {
       display: block;
       width: 100%;
       aspect-ratio: var(--zsp-aspect, 16 / 9);
       background: transparent;
+    }
+    #zen-media-controls-toolbar {
+      position: relative;
+      z-index: 1;
     }
   `;
   document.documentElement.appendChild(styleEl);
