@@ -3,7 +3,7 @@ const TICK_INTERVAL_MS = 33;
 const DEBUG = true; // set to false once confirmed working
 const dlog = DEBUG ? (...a) => console.log(...a) : () => {};
 
-export class ZenSidebarPiPParent extends JSWindowActorParent {
+export class ZenMediaPreviewParent extends JSWindowActorParent {
   async receiveMessage(msg) {
     if (msg.name === "ZenPiP:Debug") {
       if (DEBUG) {

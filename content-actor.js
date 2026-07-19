@@ -5,7 +5,7 @@ const MAX_FRAMERATE = 30;
 // playing/pause/volumechange event on every <video> in every tab.
 const DEBUG = true;
 
-export class ZenSidebarPiPChild extends JSWindowActorChild {
+export class ZenMediaPreviewChild extends JSWindowActorChild {
   _debug(...args) {
     if (!DEBUG) return;
     // Logged directly (not forwarded to the parent) so it shows up in the
