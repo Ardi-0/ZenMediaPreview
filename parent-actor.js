@@ -1,8 +1,6 @@
-console.log("[ZenMediaPreview/DEBUG] parent-actor.js MODULE LOADED");
-
 const TICK_INTERVAL_MS = 33;
 
-const DEBUG = true;
+const DEBUG = true; // set to false once confirmed working
 const dlog = DEBUG ? (...a) => console.log(...a) : () => {};
 
 export class ZenSidebarPiPParent extends JSWindowActorParent {
@@ -17,13 +15,13 @@ export class ZenSidebarPiPParent extends JSWindowActorParent {
 
     const win = this.browsingContext.topChromeWindow;
     if (!win) {
-      console.error("[Zenslop/parent] No chrome window available");
+      console.error("[ZenMediaPreview/parent] No chrome window available");
       return;
     }
 
     switch (msg.name) {
       case "ZenPiP:MirrorStarted": {
-        console.log("[Zenslop/parent] MirrorStarted from tab", this.browsingContext.id, msg.data.width, "x", msg.data.height);
+        console.log("[ZenMediaPreview/parent] MirrorStarted from tab", this.browsingContext.id, msg.data.width, "x", msg.data.height);
         const controller = win.ZenPiPController;
         if (controller) {
           controller.registerSource(this.browsingContext.id, {
@@ -52,7 +50,7 @@ export class ZenSidebarPiPParent extends JSWindowActorParent {
         try {
           controller.drawFrame(msg.data);
         } catch (e) {
-          console.error("[Zenslop/parent] drawFrame error:", e?.name, e?.message);
+          console.error("[ZenMediaPreview/parent] drawFrame error:", e?.name, e?.message);
         }
         break;
       }
@@ -68,7 +66,7 @@ export class ZenSidebarPiPParent extends JSWindowActorParent {
       }
 
       case "ZenPiP:VideoStopped": {
-        console.log("[Zenslop/parent] VideoStopped reason:", msg.data?.reason);
+        console.log("[ZenMediaPreview/parent] VideoStopped reason:", msg.data?.reason);
         const controller = win.ZenPiPController;
         if (controller) {
           controller.unregisterSource(this.browsingContext.id);
@@ -94,10 +92,10 @@ export class ZenSidebarPiPParent extends JSWindowActorParent {
         } catch (_) {}
         this.sendAsyncMessage("ZenPiP:Tick", { quality });
       } catch (e) {
-        console.error("[Zenslop/parent] Tick error:", e?.name, e?.message);
+        console.error("[ZenMediaPreview/parent] Tick error:", e?.name, e?.message);
       }
     }, TICK_INTERVAL_MS);
-    dlog("[Zenslop/parent] Ticking started");
+    dlog("[ZenMediaPreview/parent] Ticking started");
   }
 
   _stopTicking() {

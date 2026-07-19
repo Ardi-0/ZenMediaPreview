@@ -1,18 +1,18 @@
-console.log("[ZenMediaPreview/DEBUG] content-actor.js MODULE LOADED");
-
 const MAX_FRAME_DIMENSION = 480;
 const MAX_FRAMERATE = 30;
 
+// Set to false once things are confirmed working — this logs on every
+// playing/pause/volumechange event on every <video> in every tab.
 const DEBUG = true;
 
 export class ZenSidebarPiPChild extends JSWindowActorChild {
   _debug(...args) {
     if (!DEBUG) return;
+    // Logged directly (not forwarded to the parent) so it shows up in the
+    // Browser Console's content-process output as soon as "Multiprocess"
+    // mode is enabled — no dependency on a second DEBUG flag elsewhere.
     try {
-      this.sendAsyncMessage("ZenPiP:Debug", { args: args.map(a => {
-        try { return typeof a === "object" ? JSON.stringify(a) : String(a); }
-        catch (_) { return String(a); }
-      }) });
+      console.log("[ZenMediaPreview/content]", ...args);
     } catch (_) {}
   }
 
@@ -27,7 +27,7 @@ export class ZenSidebarPiPChild extends JSWindowActorChild {
 
   handleEvent(event) {
     const target = event.target;
-    this._debug("[Zenslop/content]", event.type, target?.tagName, "muted=", target?.muted, "vw=", target?.videoWidth);
+    this._debug(event.type, target?.tagName, "muted=", target?.muted, "vw=", target?.videoWidth);
     if (!target || target.tagName !== "VIDEO") return;
 
     if (event.type === "playing") {
@@ -57,7 +57,7 @@ export class ZenSidebarPiPChild extends JSWindowActorChild {
   }
 
   _tryStart(target) {
-    this._debug("[Zenslop/content] tryStart readyState=", target.readyState, "vw=", target.videoWidth, "audible=", this._isAudible(target), "hasVideo=", !!this._video);
+    this._debug("tryStart readyState=", target.readyState, "vw=", target.videoWidth, "audible=", this._isAudible(target), "hasVideo=", !!this._video);
     if (this._video) return;
     if (target.readyState < 2 || target.videoWidth === 0) return;
     if (!this._isAudible(target)) return;
@@ -103,7 +103,7 @@ export class ZenSidebarPiPChild extends JSWindowActorChild {
         this._scaleCanvas.height = th;
         this._scaleCtx = this._scaleCanvas.getContext("2d", ctxOpts);
       } catch (err2) {
-        this._debug("[Zenslop/content] canvas creation failed:", err2);
+        this._debug("canvas creation failed:", err2);
         this._stopAndNotify("canvas:construct");
         return;
       }
@@ -158,12 +158,12 @@ export class ZenSidebarPiPChild extends JSWindowActorChild {
         height: canvas.height,
       }, [img.data.buffer]);
     } catch (e) {
-      this._debug("[Zenslop/content] _captureFrame threw:", String(e), e?.name, e?.message);
+      this._debug("_captureFrame threw:", String(e), e?.name, e?.message);
     }
   }
 
   _stopAndNotify(reason) {
-    this._debug("[Zenslop/content] stopAndNotify reason=", reason, "hadVideo=", !!this._video);
+    this._debug("stopAndNotify reason=", reason, "hadVideo=", !!this._video);
     if (!this._video) return;
     this._teardown();
     try {
