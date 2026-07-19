@@ -42,24 +42,29 @@
   const styleEl = document.createElement("style");
   styleEl.textContent = `
     #zsp-wrap {
+      display: none;
+    }
+    #zsp-wrap.zsp-animate-in {
       display: grid;
       grid-template-rows: 0fr;
       transition: grid-template-rows ${ANIM_MS}ms ease;
-      min-height: 0;
+      margin: 0;
     }
     #zsp-wrap.zsp-open {
       grid-template-rows: 1fr;
-      margin: 0 6px;
       position: relative;
       z-index: 2;
+    }
+    #zsp-wrap.zsp-open:not(.zsp-player-hover) {
+      margin: 0 6px;
+    }
+    #zsp-wrap.zsp-open.zsp-player-hover {
+      margin: 0;
     }
     /* Hide preview when sidebar is collapsed (native compact + StormAnon mod) */
     #navigator-toolbox:not(:is(:hover, [zen-expanded="true"], [zen-has-hover])) #zsp-wrap.zsp-open {
       grid-template-rows: 0fr !important;
       margin: 0 !important;
-    }
-    #zsp-wrap.zsp-open.zsp-player-hover {
-      margin-bottom: 70px;
     }
     #zsp-inner {
       overflow: hidden;
@@ -109,6 +114,14 @@
       subtree: false,
     });
   }
+  // Re-check visibility on sidebar expand/collapse (compact mode + StormAnon)
+  const toolbox = document.querySelector("#navigator-toolbox");
+  if (toolbox) {
+    const tbObserver = new MutationObserver(() => updateVisibility());
+    tbObserver.observe(toolbox, { attributes: true, attributeFilter: ["zen-expanded", "zen-has-hover"] });
+    toolbox.addEventListener("mouseenter", () => updateVisibility());
+    toolbox.addEventListener("mouseleave", () => updateVisibility());
+  }
 
   // --- state ---------------------------------------------------------------
   let isStreaming = false;
@@ -133,8 +146,40 @@
     } catch (_) { return true; }
   }
 
+  function isSidebarCollapsed() {
+    const tb = document.querySelector("#navigator-toolbox");
+    return tb && !tb.matches(":hover, [zen-expanded='true'], [zen-has-hover]");
+  }
+
   function updateVisibility() {
-    wrap.classList.toggle("zsp-open", isStreaming && !sourceTabActive && mediaPlayerVisible());
+    const shouldShow = isStreaming && !sourceTabActive && mediaPlayerVisible();
+    const isOpen = wrap.classList.contains("zsp-open");
+
+    if (shouldShow) {
+      if (isSidebarCollapsed()) {
+        // Keep completely out of layout when collapsed
+        wrap.classList.remove("zsp-open");
+        wrap.classList.remove("zsp-animate-in");
+      } else if (!isOpen) {
+        wrap.classList.add("zsp-animate-in");
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            if (isStreaming && !sourceTabActive && mediaPlayerVisible() && !isSidebarCollapsed()) {
+              wrap.classList.add("zsp-open");
+            } else {
+              wrap.classList.remove("zsp-animate-in");
+            }
+          });
+        });
+      }
+    } else if (isOpen) {
+      wrap.classList.remove("zsp-open");
+      setTimeout(() => {
+        if (!wrap.classList.contains("zsp-open")) {
+          wrap.classList.remove("zsp-animate-in");
+        }
+      }, ANIM_MS);
+    }
   }
 
   // Minimal controller surface expected by parent-actor.js (unchanged from
