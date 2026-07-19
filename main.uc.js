@@ -47,7 +47,7 @@
     #zsp-wrap.zsp-animate-in {
       display: grid;
       grid-template-rows: 0fr;
-      transition: grid-template-rows ${ANIM_MS}ms ease;
+      transition: grid-template-rows ${ANIM_MS}ms ease, margin ${ANIM_MS}ms ease;
       margin: 0;
     }
     #zsp-wrap.zsp-open {
@@ -63,8 +63,8 @@
     }
     /* Hide preview when sidebar is collapsed (native compact + StormAnon mod) */
     #navigator-toolbox:not(:is(:hover, [zen-expanded="true"], [zen-has-hover])) #zsp-wrap.zsp-open {
-      grid-template-rows: 0fr !important;
-      margin: 0 !important;
+      grid-template-rows: 0fr;
+      margin: 0;
     }
     #zsp-inner {
       overflow: hidden;
@@ -120,13 +120,33 @@
     const tbObserver = new MutationObserver(() => updateVisibility());
     tbObserver.observe(toolbox, { attributes: true, attributeFilter: ["zen-expanded", "zen-has-hover"] });
     toolbox.addEventListener("mouseenter", () => updateVisibility());
-    toolbox.addEventListener("mouseleave", () => updateVisibility());
+    toolbox.addEventListener("mouseleave", () => {
+      clearTimeout(_collapseCleanupTimer);
+      _collapseCleanupTimer = setTimeout(() => {
+        if (isSidebarCollapsed() && wrap.classList.contains("zsp-open")) {
+          wrap.classList.remove("zsp-open");
+          wrap.classList.remove("zsp-animate-in");
+        }
+      }, ANIM_MS + 50);
+      updateVisibility();
+    });
   }
+
+  // Clean up after collapse animation completes
+  wrap.addEventListener("transitionend", (e) => {
+    if (e.propertyName !== "grid-template-rows") return;
+    clearTimeout(_collapseCleanupTimer);
+    if (isSidebarCollapsed() && wrap.classList.contains("zsp-open")) {
+      wrap.classList.remove("zsp-open");
+      wrap.classList.remove("zsp-animate-in");
+    }
+  });
 
   // --- state ---------------------------------------------------------------
   let isStreaming = false;
   let sourceTabActive = false;
   let sourceBC = null;
+  let _collapseCleanupTimer = null;
   const availableSources = new Map();
   const actorRegistry = new Map();
 
@@ -155,25 +175,20 @@
     const shouldShow = isStreaming && !sourceTabActive && mediaPlayerVisible();
     const isOpen = wrap.classList.contains("zsp-open");
 
-    if (shouldShow) {
-      if (isSidebarCollapsed()) {
-        // Keep completely out of layout when collapsed
-        wrap.classList.remove("zsp-open");
-        wrap.classList.remove("zsp-animate-in");
-      } else if (!isOpen) {
-        wrap.classList.add("zsp-animate-in");
+    if (shouldShow && !isOpen) {
+      wrap.classList.add("zsp-animate-in");
+      requestAnimationFrame(() => {
         requestAnimationFrame(() => {
-          requestAnimationFrame(() => {
-            if (isStreaming && !sourceTabActive && mediaPlayerVisible() && !isSidebarCollapsed()) {
-              wrap.classList.add("zsp-open");
-            } else {
-              wrap.classList.remove("zsp-animate-in");
-            }
-          });
+          if (isStreaming && !sourceTabActive && mediaPlayerVisible()) {
+            wrap.classList.add("zsp-open");
+          } else {
+            wrap.classList.remove("zsp-animate-in");
+          }
         });
-      }
-    } else if (isOpen) {
+      });
+    } else if (!shouldShow && isOpen) {
       wrap.classList.remove("zsp-open");
+      clearTimeout(_collapseCleanupTimer);
       setTimeout(() => {
         if (!wrap.classList.contains("zsp-open")) {
           wrap.classList.remove("zsp-animate-in");
