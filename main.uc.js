@@ -59,7 +59,7 @@
       margin: 0 6px;
     }
     #zsp-wrap.zsp-open.zsp-player-hover {
-      margin: 0;
+      margin: 0 6px 70px;
     }
     /* Hide preview when sidebar is collapsed (native compact + StormAnon mod) */
     #navigator-toolbox:not(:is(:hover, [zen-expanded="true"], [zen-has-hover])) #zsp-wrap.zsp-open {
