@@ -93,32 +93,25 @@
   musicPlayerUI.addEventListener("mouseenter", () => wrap.classList.add("zsp-player-hover"));
   musicPlayerUI.addEventListener("mouseleave", () => wrap.classList.remove("zsp-player-hover"));
 
-  // --- sidebar expand-state detection (compact mode + expand-on-hover) ------
+  // --- sidebar expand-state detection (works with any expand-on-hover mod) ---
+  // When the sidebar is collapsed the media player is ~34 px wide; when
+  // expanded it is ~300 px.  Watching the actual width is more reliable than
+  // checking attributes (StormAnon mod uses clip-path, not attribute swaps).
   let sidebarExpanded = true;
 
   function updateSidebarState() {
-    const tb = document.getElementById("navigator-toolbox");
-    if (!tb) { sidebarExpanded = true; return; }
-    const exp = tb.getAttribute("zen-expanded") === "true";
-    const hov = tb.hasAttribute("zen-has-hover");
-    let wCheck = true;
+    const mu = document.querySelector(MUSIC_PLAYER_SELECTORS);
+    if (!mu || !mu.isConnected) { sidebarExpanded = true; return; }
     try {
-      const r = tb.getBoundingClientRect();
-      if (r.width > 0 && r.width < 50) wCheck = false;
-    } catch (_) {}
-    sidebarExpanded = exp || hov || wCheck;
+      const w = mu.getBoundingClientRect().width;
+      sidebarExpanded = w > 60;
+    } catch (_) { sidebarExpanded = true; }
     updateVisibility();
   }
 
-  const tb = document.getElementById("navigator-toolbox");
-  if (tb) {
-    tb.addEventListener("mouseenter", updateSidebarState);
-    tb.addEventListener("mouseleave", updateSidebarState);
-    new MutationObserver(() => updateSidebarState()).observe(tb, {
-      attributes: true,
-      attributeFilter: ["zen-expanded", "zen-has-hover"],
-    });
-  }
+  try {
+    new ResizeObserver(() => updateSidebarState()).observe(musicPlayerUI);
+  } catch (_) {}
 
   // --- state ---------------------------------------------------------------
   let isStreaming = false;
