@@ -94,20 +94,37 @@
   musicPlayerUI.addEventListener("mouseleave", () => wrap.classList.remove("zsp-player-hover"));
 
   // --- sidebar expand-state detection (works with any expand-on-hover mod) ---
-  // Polls the media-player width every frame while streaming —
-  // more reliable than ResizeObserver for CSS-clipped transitions.
+  // StormAnon / compact mode toggle tab-label opacity between 0 and 1.
+  // Checking computed opacity is more reliable than measuring widths or
+  // reading attributes because it reflects the real rendered state.
   let sidebarExpanded = true;
   let sidebarPollRaf = null;
 
   function updateSidebarState() {
-    const mu = document.querySelector(MUSIC_PLAYER_SELECTORS);
-    if (!mu || !mu.isConnected) { sidebarExpanded = true; return; }
-    try {
-      const w = mu.getBoundingClientRect().width;
-      const was = sidebarExpanded;
-      sidebarExpanded = w > 60;
-      if (was !== sidebarExpanded) updateVisibility();
-    } catch (_) { sidebarExpanded = true; }
+    const tb = document.getElementById("navigator-toolbox");
+    if (!tb) { sidebarExpanded = true; return; }
+    let expanded = true;
+    // 1. Native zen-expanded attribute
+    if (tb.getAttribute("zen-expanded") === "true") { expanded = true; }
+    // 2. Tab‑label opacity (works with StormAnon & native compact mode)
+    else {
+      try {
+        const label = tb.querySelector(".tab-label-container");
+        if (label) {
+          expanded = parseFloat(getComputedStyle(label).opacity) > 0.1;
+        } else {
+          // Fallback: media‑player width
+          const mu = document.querySelector(MUSIC_PLAYER_SELECTORS);
+          if (mu && mu.isConnected) {
+            expanded = mu.getBoundingClientRect().width > 60;
+          }
+        }
+      } catch (_) { expanded = true; }
+    }
+    if (sidebarExpanded !== expanded) {
+      sidebarExpanded = expanded;
+      updateVisibility();
+    }
   }
 
   function pollSidebarState() {
