@@ -156,6 +156,7 @@
   let _collapseCleanupTimer = null;
   const availableSources = new Map();
   const actorRegistry = new Map();
+  const sourceMeta = new Map();
 
   function setAspect(w, h) {
     if (!(w > 0) || !(h > 0)) return;
@@ -206,6 +207,50 @@
   } catch (e) {
     err("MediaControlService observer failed:", e);
   }
+
+  // Handle tab mute/unmute (tab-level mute doesn't fire volumechange on the video element)
+  try {
+    gBrowser.tabContainer.addEventListener("TabAttrModified", (e) => {
+      const changed = e.detail?.changed;
+      if (!changed || !changed.includes("muted")) return;
+      const browser = e.target.linkedBrowser;
+      if (!browser) return;
+      const bcId = browser.browsingContext?.id;
+      if (!bcId) return;
+
+      if (browser.muted) {
+        const src = availableSources.get(bcId);
+        if (!src) return;
+        log("tab muted, stopping source", bcId);
+        const info = actorRegistry.get(bcId);
+        if (info) info.stopTick();
+        availableSources.delete(bcId);
+        if (sourceBC && sourceBC.id === bcId) {
+          sourceBC = null;
+          isStreaming = false;
+          updateVisibility();
+          if (availableSources.size > 0) {
+            const next = availableSources.values().next().value;
+            window.ZenPiPController._activateSource(next.width, next.height, next.bc);
+          }
+        }
+      } else {
+        if (actorRegistry.has(bcId) && !availableSources.has(bcId)) {
+          const meta = sourceMeta.get(bcId);
+          if (meta) {
+            log("tab unmuted, re-adding source", bcId);
+            const bc = browser.browsingContext;
+            availableSources.set(bcId, { bc, width: meta.width, height: meta.height });
+            const info = actorRegistry.get(bcId);
+            if (info) info.startTick(info.win || window);
+            if (!sourceBC) {
+              window.ZenPiPController._activateSource(meta.width, meta.height, bc);
+            }
+          }
+        }
+      }
+    });
+  } catch (_) {}
 
   function updateVisibility() {
     const shouldShow = isStreaming && !sourceTabActive && mediaPlayerVisible();
@@ -262,6 +307,7 @@
     },
     offerVideo(width, height, browsingContext) {
       const id = browsingContext.id;
+      sourceMeta.set(id, { width, height });
       availableSources.set(id, { bc: browsingContext, width, height });
       // Only auto-activate if no current source, or this IS the active media session
       if (!sourceBC || id === getActiveMediaBC()) {
@@ -269,6 +315,7 @@
       }
     },
     notifySourceStopped(bc) {
+      sourceMeta.delete(bc.id);
       availableSources.delete(bc.id);
       if (sourceBC && sourceBC.id === bc.id) {
         sourceBC = null;
