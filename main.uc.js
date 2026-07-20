@@ -236,16 +236,25 @@
           if (isTabMuted(bcId)) {
             setMediaPlayerVisible(false);
             const alt = findAudible();
-            if (alt && alt.bc.id !== bcId) window.ZenPiPController._activateSource(alt.width, alt.height, alt.bc);
+            if (alt && alt.bc.id !== bcId) {
+              window.ZenPiPController._activateSource(alt.width, alt.height, alt.bc);
+            } else if (sourceBC || isStreaming) {
+              sourceBC = null;
+              isStreaming = false;
+              updateVisibility();
+              safe(() => canvasCtx.clearRect(0, 0, canvas.width, canvas.height));
+            }
             return;
           }
           setMediaPlayerVisible(true);
-          const src = availableSources.get(bcId);
+          const src = availableSources.get(bcId) || findAudible();
           if (src) {
             window.ZenPiPController._activateSource(src.width, src.height, src.bc);
           } else {
-            const alt = findAudible();
-            if (alt) window.ZenPiPController._activateSource(alt.width, alt.height, alt.bc);
+            sourceBC = null;
+            isStreaming = false;
+            updateVisibility();
+            safe(() => canvasCtx.clearRect(0, 0, canvas.width, canvas.height));
           }
         } catch (_) {}
       }
