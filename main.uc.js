@@ -178,6 +178,34 @@
     return tb && !tb.matches(":hover, [zen-expanded='true'], [zen-has-hover]");
   }
 
+  function isTabFocused(bc) {
+    try {
+      return gBrowser?.selectedBrowser?.browsingContext?.id === bc.id;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  // Switch preview when user switches tab
+  try {
+    gBrowser.tabContainer.addEventListener("TabSelect", () => {
+      try {
+        const activeId = gBrowser?.selectedBrowser?.browsingContext?.id;
+        if (!activeId) return;
+        if (sourceBC && sourceBC.id === activeId) {
+          updateVisibility();
+          return;
+        }
+        const src = availableSources.get(activeId);
+        if (src) {
+          window.ZenPiPController._activateSource(src.width, src.height, src.bc);
+        } else {
+          updateVisibility();
+        }
+      } catch (_) {}
+    });
+  } catch (_) {}
+
   function updateVisibility() {
     const shouldShow = isStreaming && !sourceTabActive && mediaPlayerVisible();
     const isOpen = wrap.classList.contains("zsp-open");
@@ -234,7 +262,10 @@
     offerVideo(width, height, browsingContext) {
       const id = browsingContext.id;
       availableSources.set(id, { bc: browsingContext, width, height });
-      this._activateSource(width, height, browsingContext);
+      // Only auto-activate if no current source, or this video is in the focused tab
+      if (!sourceBC || isTabFocused(browsingContext)) {
+        this._activateSource(width, height, browsingContext);
+      }
     },
     notifySourceStopped(bc) {
       availableSources.delete(bc.id);
@@ -249,7 +280,6 @@
       }
     },
     _activateSource(width, height, browsingContext) {
-      availableSources.delete(browsingContext.id);
       log("showVideo", width, "x", height, "tab", browsingContext?.id);
       setAspect(width, height);
       // Stop previous source's tick to save CPU/IPC
