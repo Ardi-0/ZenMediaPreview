@@ -178,12 +178,12 @@
     return tb && !tb.matches(":hover, [zen-expanded='true'], [zen-has-hover]");
   }
 
-  function isTabFocused(bc) {
+  function getActiveMediaBC() {
     try {
-      return gBrowser?.selectedBrowser?.browsingContext?.id === bc.id;
-    } catch (_) {
-      return false;
-    }
+      const service = Cc["@mozilla.org/media/mediacontrolservice;1"].getService();
+      const controller = service.getActiveMediaController();
+      return controller?.browsingContext?.id || null;
+    } catch (_) { return null; }
   }
 
   // Sync preview with the active media controller (what the media player shows)
@@ -193,19 +193,19 @@
       observe(subject, topic) {
         if (topic !== MEDIA_CTRL_TOPIC) return;
         try {
-          const controller = subject.getActiveMediaController();
-          if (!controller) return;
-          const bcId = controller.browsingContext?.id;
-          if (!bcId) return;
-          if (sourceBC && sourceBC.id === bcId) return;
+          const bcId = getActiveMediaBC();
+          if (!bcId || (sourceBC && sourceBC.id === bcId)) return;
           const src = availableSources.get(bcId);
           if (src) {
+            log("switching to active media controller tab", bcId);
             window.ZenPiPController._activateSource(src.width, src.height, src.bc);
           }
         } catch (_) {}
       }
     }, MEDIA_CTRL_TOPIC);
-  } catch (_) {}
+  } catch (e) {
+    err("MediaControlService observer failed:", e);
+  }
 
   function updateVisibility() {
     const shouldShow = isStreaming && !sourceTabActive && mediaPlayerVisible();
@@ -263,8 +263,8 @@
     offerVideo(width, height, browsingContext) {
       const id = browsingContext.id;
       availableSources.set(id, { bc: browsingContext, width, height });
-      // Only auto-activate if no current source, or this video is in the focused tab
-      if (!sourceBC || isTabFocused(browsingContext)) {
+      // Only auto-activate if no current source, or this IS the active media session
+      if (!sourceBC || id === getActiveMediaBC()) {
         this._activateSource(width, height, browsingContext);
       }
     },
