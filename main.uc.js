@@ -207,7 +207,16 @@
     return false;
   }
 
-  // Sync preview with the active media controller (what the media player shows)
+  function findAudible() {
+    const activeId = getActiveMediaBC();
+    if (activeId && availableSources.has(activeId) && !isTabMuted(activeId))
+      return availableSources.get(activeId);
+    for (const [id, src] of availableSources)
+      if (!isTabMuted(id)) return src;
+    return null;
+  }
+
+  // Sync preview with the active media controller
   // Hide the media player when the active controller tab is muted
   try {
     const MEDIA_CTRL_TOPIC = "media-controller-changed";
@@ -219,24 +228,24 @@
           if (!bcId) {
             setMediaPlayerVisible(true);
             if (sourceBC) {
-              sourceBC = null;
-              isStreaming = false;
-              updateVisibility();
-              safe(() => canvasCtx.clearRect(0, 0, canvas.width, canvas.height));
+              window.ZenPiPController.hideVideo();
             }
             return;
           }
           if (sourceBC && sourceBC.id === bcId) return;
-          // Hide media player when active controller is muted
           if (isTabMuted(bcId)) {
             setMediaPlayerVisible(false);
+            const alt = findAudible();
+            if (alt && alt.bc.id !== bcId) window.ZenPiPController._activateSource(alt.width, alt.height, alt.bc);
             return;
           }
           setMediaPlayerVisible(true);
           const src = availableSources.get(bcId);
           if (src) {
-            log("switching to active media controller tab", bcId);
             window.ZenPiPController._activateSource(src.width, src.height, src.bc);
+          } else {
+            const alt = findAudible();
+            if (alt) window.ZenPiPController._activateSource(alt.width, alt.height, alt.bc);
           }
         } catch (_) {}
       }
@@ -268,8 +277,13 @@
         if (sourceBC && sourceBC.id === bcId) {
           sourceBC = null;
           isStreaming = false;
-          updateVisibility();
-          safe(() => canvasCtx.clearRect(0, 0, canvas.width, canvas.height));
+          const alt = findAudible();
+          if (alt) {
+            window.ZenPiPController._activateSource(alt.width, alt.height, alt.bc);
+          } else {
+            updateVisibility();
+            safe(() => canvasCtx.clearRect(0, 0, canvas.width, canvas.height));
+          }
         }
       } else {
         if (bcId === getActiveMediaBC()) {
@@ -283,7 +297,7 @@
             availableSources.set(bcId, { bc, width: meta.width, height: meta.height });
             const info = actorRegistry.get(bcId);
             if (info) info.startTick(info.win || window);
-            if (!sourceBC) {
+            if (!sourceBC || (bcId === getActiveMediaBC() && sourceBC.id !== bcId)) {
               window.ZenPiPController._activateSource(meta.width, meta.height, bc);
             }
           }
@@ -367,8 +381,13 @@
       if (sourceBC && sourceBC.id === bc.id) {
         sourceBC = null;
         isStreaming = false;
-        updateVisibility();
-        safe(() => canvasCtx.clearRect(0, 0, canvas.width, canvas.height));
+        const alt = findAudible();
+        if (alt) {
+          window.ZenPiPController._activateSource(alt.width, alt.height, alt.bc);
+        } else {
+          updateVisibility();
+          safe(() => canvasCtx.clearRect(0, 0, canvas.width, canvas.height));
+        }
       }
     },
     _activateSource(width, height, browsingContext) {
