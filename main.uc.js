@@ -187,7 +187,42 @@
     } catch (_) { return null; }
   }
 
+  function setMediaPlayerVisible(visible) {
+    const mu = document.querySelector(MUSIC_PLAYER_SELECTORS);
+    if (!mu) return;
+    if (visible) {
+      mu.style.removeProperty("display");
+    } else {
+      mu.style.display = "none";
+    }
+  }
+
+  function isTabMuted(bcId) {
+    try {
+      for (const tab of gBrowser.tabs) {
+        const bc = tab.linkedBrowser?.browsingContext;
+        if (bc && bc.id === bcId) return tab.linkedBrowser.muted;
+      }
+    } catch (_) {}
+    return false;
+  }
+
+  function getPreferredSource() {
+    // Prefer the active media controller if it's not muted
+    const activeId = getActiveMediaBC();
+    if (activeId && availableSources.has(activeId) && !isTabMuted(activeId)) {
+      return availableSources.get(activeId);
+    }
+    // Fall back to the first audible source
+    for (const [id, src] of availableSources) {
+      if (!isTabMuted(id)) return src;
+    }
+    // Last resort: first available source (muted or not)
+    return availableSources.values().next().value;
+  }
+
   // Sync preview with the active media controller (what the media player shows)
+  // Also hide the media player when the active controller tab is muted
   try {
     const MEDIA_CTRL_TOPIC = "media-controller-changed";
     Services.obs.addObserver({
@@ -195,7 +230,23 @@
         if (topic !== MEDIA_CTRL_TOPIC) return;
         try {
           const bcId = getActiveMediaBC();
-          if (!bcId || (sourceBC && sourceBC.id === bcId)) return;
+          if (!bcId) {
+            setMediaPlayerVisible(true);
+            if (sourceBC) {
+              sourceBC = null;
+              isStreaming = false;
+              updateVisibility();
+              safe(() => canvasCtx.clearRect(0, 0, canvas.width, canvas.height));
+            }
+            return;
+          }
+          if (sourceBC && sourceBC.id === bcId) return;
+          // Hide media player when active controller is muted
+          if (isTabMuted(bcId)) {
+            setMediaPlayerVisible(false);
+            return;
+          }
+          setMediaPlayerVisible(true);
           const src = availableSources.get(bcId);
           if (src) {
             log("switching to active media controller tab", bcId);
@@ -225,16 +276,22 @@
         const info = actorRegistry.get(bcId);
         if (info) info.stopTick();
         availableSources.delete(bcId);
+        if (bcId === getActiveMediaBC()) {
+          setMediaPlayerVisible(false);
+        }
         if (sourceBC && sourceBC.id === bcId) {
           sourceBC = null;
           isStreaming = false;
           updateVisibility();
           if (availableSources.size > 0) {
-            const next = availableSources.values().next().value;
-            window.ZenPiPController._activateSource(next.width, next.height, next.bc);
+            const next = getPreferredSource();
+            if (next) window.ZenPiPController._activateSource(next.width, next.height, next.bc);
           }
         }
       } else {
+        if (bcId === getActiveMediaBC()) {
+          setMediaPlayerVisible(true);
+        }
         if (actorRegistry.has(bcId) && !availableSources.has(bcId)) {
           const meta = sourceMeta.get(bcId);
           if (meta) {
@@ -309,6 +366,10 @@
       const id = browsingContext.id;
       sourceMeta.set(id, { width, height });
       availableSources.set(id, { bc: browsingContext, width, height });
+      // If this source is the active media controller, show the media player
+      if (id === getActiveMediaBC()) {
+        setMediaPlayerVisible(true);
+      }
       // Only auto-activate if no current source, or this IS the active media session
       if (!sourceBC || id === getActiveMediaBC()) {
         this._activateSource(width, height, browsingContext);
@@ -317,18 +378,24 @@
     notifySourceStopped(bc) {
       sourceMeta.delete(bc.id);
       availableSources.delete(bc.id);
+      if (bc.id === getActiveMediaBC()) {
+        setMediaPlayerVisible(false);
+      }
       if (sourceBC && sourceBC.id === bc.id) {
         sourceBC = null;
         isStreaming = false;
         updateVisibility();
         if (availableSources.size > 0) {
-          const next = availableSources.values().next().value;
-          this._activateSource(next.width, next.height, next.bc);
+          const next = getPreferredSource();
+          if (next) this._activateSource(next.width, next.height, next.bc);
+        } else {
+          safe(() => canvasCtx.clearRect(0, 0, canvas.width, canvas.height));
         }
       }
     },
     _activateSource(width, height, browsingContext) {
       log("showVideo", width, "x", height, "tab", browsingContext?.id);
+      safe(() => canvasCtx.clearRect(0, 0, canvas.width, canvas.height));
       setAspect(width, height);
       // Stop previous source's tick to save CPU/IPC
       if (sourceBC && sourceBC.id !== browsingContext.id) {
