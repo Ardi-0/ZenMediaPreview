@@ -186,24 +186,25 @@
     }
   }
 
-  // Switch preview when user switches tab
+  // Sync preview with the active media controller (what the media player shows)
   try {
-    gBrowser.tabContainer.addEventListener("TabSelect", () => {
-      try {
-        const activeId = gBrowser?.selectedBrowser?.browsingContext?.id;
-        if (!activeId) return;
-        if (sourceBC && sourceBC.id === activeId) {
-          updateVisibility();
-          return;
-        }
-        const src = availableSources.get(activeId);
-        if (src) {
-          window.ZenPiPController._activateSource(src.width, src.height, src.bc);
-        } else {
-          updateVisibility();
-        }
-      } catch (_) {}
-    });
+    const MEDIA_CTRL_TOPIC = "media-controller-changed";
+    Services.obs.addObserver({
+      observe(subject, topic) {
+        if (topic !== MEDIA_CTRL_TOPIC) return;
+        try {
+          const controller = subject.getActiveMediaController();
+          if (!controller) return;
+          const bcId = controller.browsingContext?.id;
+          if (!bcId) return;
+          if (sourceBC && sourceBC.id === bcId) return;
+          const src = availableSources.get(bcId);
+          if (src) {
+            window.ZenPiPController._activateSource(src.width, src.height, src.bc);
+          }
+        } catch (_) {}
+      }
+    }, MEDIA_CTRL_TOPIC);
   } catch (_) {}
 
   function updateVisibility() {
