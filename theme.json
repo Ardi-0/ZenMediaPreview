@@ -11,6 +11,7 @@
       "include": ["chrome://browser/content/browser.xhtml"]
     }
   },
+  "preferences": "preferences.json",
   "tags": ["picture-in-picture", "media", "sidebar", "video-preview"],
   "fork": ["zen"],
   "homepage": "https://github.com/Ardi-0/ZenMediaPreview"

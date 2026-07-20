@@ -1,0 +1,27 @@
+[
+  {
+    "property": "mod.zenmediapreview.quality",
+    "label": "Preview Quality",
+    "type": "dropdown",
+    "defaultValue": "480",
+    "options": [
+      { "label": "240p", "value": "240" },
+      { "label": "360p", "value": "360" },
+      { "label": "480p", "value": "480" },
+      { "label": "720p", "value": "720" },
+      { "label": "1080p", "value": "1080" }
+    ]
+  },
+  {
+    "property": "mod.zenmediapreview.framerate",
+    "label": "Preview Framerate",
+    "type": "dropdown",
+    "defaultValue": "20",
+    "options": [
+      { "label": "10 fps", "value": "10" },
+      { "label": "15 fps", "value": "15" },
+      { "label": "20 fps", "value": "20" },
+      { "label": "30 fps", "value": "30" }
+    ]
+  }
+]

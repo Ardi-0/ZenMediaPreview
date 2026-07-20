@@ -1,5 +1,3 @@
-const TICK_INTERVAL_MS = 33;
-
 const DEBUG = false;
 const dlog = DEBUG ? (...a) => console.log(...a) : () => {};
 
@@ -84,6 +82,11 @@ export class ZenMediaPreviewParent extends JSWindowActorParent {
   _startTicking(win) {
     this._stopTicking();
     this._timerWindow = win;
+    let fps = 20;
+    try {
+      fps = Services.prefs.getIntPref("mod.zenmediapreview.framerate", 20);
+    } catch (_) {}
+    const interval = Math.max(33, Math.round(1000 / fps));
     this._tickInterval = win.setInterval(() => {
       try {
         let quality = "480";
@@ -94,8 +97,8 @@ export class ZenMediaPreviewParent extends JSWindowActorParent {
       } catch (e) {
         console.error("[ZenMediaPreview/parent] Tick error:", e?.name, e?.message);
       }
-    }, TICK_INTERVAL_MS);
-    dlog("[ZenMediaPreview/parent] Ticking started");
+    }, interval);
+    dlog("[ZenMediaPreview/parent] Ticking started at", interval, "ms interval");
   }
 
   _stopTicking() {

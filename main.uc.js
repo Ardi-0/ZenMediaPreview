@@ -23,6 +23,13 @@
     }
   };
 
+  // Register default preferences (visible in about:config / sin mod settings)
+  try {
+    const branch = Services.prefs.getDefaultBranch("mod.zenmediapreview.");
+    branch.setStringPref("quality", "480");
+    branch.setIntPref("framerate", 20);
+  } catch (_) {}
+
   const MUSIC_PLAYER_SELECTORS =
     "#zen-media-controls-toolbar, .zen-sidebar-bottom-buttons";
 
@@ -245,6 +252,11 @@
       availableSources.delete(browsingContext.id);
       log("showVideo", width, "x", height, "tab", browsingContext?.id);
       setAspect(width, height);
+      // Stop previous source's tick to save CPU/IPC
+      if (sourceBC && sourceBC.id !== browsingContext.id) {
+        const prevInfo = actorRegistry.get(sourceBC.id);
+        if (prevInfo) prevInfo.stopTick();
+      }
       sourceBC = browsingContext;
       try {
         sourceTabActive =
