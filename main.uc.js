@@ -207,22 +207,8 @@
     return false;
   }
 
-  function getPreferredSource() {
-    // Prefer the active media controller if it's not muted
-    const activeId = getActiveMediaBC();
-    if (activeId && availableSources.has(activeId) && !isTabMuted(activeId)) {
-      return availableSources.get(activeId);
-    }
-    // Fall back to the first audible source
-    for (const [id, src] of availableSources) {
-      if (!isTabMuted(id)) return src;
-    }
-    // Last resort: first available source (muted or not)
-    return availableSources.values().next().value;
-  }
-
   // Sync preview with the active media controller (what the media player shows)
-  // Also hide the media player when the active controller tab is muted
+  // Hide the media player when the active controller tab is muted
   try {
     const MEDIA_CTRL_TOPIC = "media-controller-changed";
     Services.obs.addObserver({
@@ -283,10 +269,7 @@
           sourceBC = null;
           isStreaming = false;
           updateVisibility();
-          if (availableSources.size > 0) {
-            const next = getPreferredSource();
-            if (next) window.ZenPiPController._activateSource(next.width, next.height, next.bc);
-          }
+          safe(() => canvasCtx.clearRect(0, 0, canvas.width, canvas.height));
         }
       } else {
         if (bcId === getActiveMediaBC()) {
@@ -385,12 +368,7 @@
         sourceBC = null;
         isStreaming = false;
         updateVisibility();
-        if (availableSources.size > 0) {
-          const next = getPreferredSource();
-          if (next) this._activateSource(next.width, next.height, next.bc);
-        } else {
-          safe(() => canvasCtx.clearRect(0, 0, canvas.width, canvas.height));
-        }
+        safe(() => canvasCtx.clearRect(0, 0, canvas.width, canvas.height));
       }
     },
     _activateSource(width, height, browsingContext) {
