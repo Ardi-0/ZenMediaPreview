@@ -31,14 +31,25 @@ export class ZenMediaPreviewChild extends JSWindowActorChild {
       return;
     }
 
-    if (event.type === "waiting" || event.type === "seeking") {
+    if (event.type === "waiting") {
       if (target === this._video) {
         this._notifyPlaying(false);
       }
       return;
     }
 
-    if (event.type === "seeked" || event.type === "canplay") {
+    if (event.type === "seeking") {
+      // Don't stop ticks during seeking — we want frames to flow for the
+      // scrubbing preview. Only stall/wait triggers tick slowdown.
+      return;
+    }
+
+    if (event.type === "seeked") {
+      // No state change needed — seeking didn't toggle playing flag
+      return;
+    }
+
+    if (event.type === "canplay") {
       if (target === this._video) {
         this._notifyPlaying(true);
       }
