@@ -43,6 +43,7 @@ export class ZenMediaPreviewChild extends JSWindowActorChild {
       // Re-enable playing so ticks flow at full rate while the user drags.
       if (target === this._video) {
         this._notifyPlaying(true);
+        this._startSeekLoop();
       }
       return;
     }
@@ -51,6 +52,7 @@ export class ZenMediaPreviewChild extends JSWindowActorChild {
       // Reset playing to the actual video state after seek completes.
       // This prevents wasted ticks when scrubbing a paused video.
       if (target === this._video) {
+        this._stopSeekLoop();
         this._notifyPlaying(!target.paused && !target.ended);
       }
       return;
@@ -90,6 +92,24 @@ export class ZenMediaPreviewChild extends JSWindowActorChild {
     try {
       this.sendAsyncMessage("ZenPiP:PlayState", { playing });
     } catch (_) {}
+  }
+
+  _startSeekLoop() {
+    if (this._seekRAF) return;
+    const loop = () => {
+      if (!this._video?.seeking) { this._seekRAF = null; return; }
+      this._captureFrame(this._lastQuality);
+      this._seekRAF = this.contentWindow.requestAnimationFrame(loop);
+    };
+    this._seekRAF = this.contentWindow.requestAnimationFrame(loop);
+  }
+
+  _stopSeekLoop() {
+    if (this._seekRAF) {
+      try { this.contentWindow?.cancelAnimationFrame(this._seekRAF); } catch (_) {}
+      this._seekRAF = null;
+    }
+    this._lastSentTime = null;
   }
 
   _isAudible(video) {
@@ -173,19 +193,19 @@ export class ZenMediaPreviewChild extends JSWindowActorChild {
       this.sendAsyncMessage("ZenPiP:SourceVisibility", { hidden: doc.hidden });
     }
   }
-
   _captureFrame(quality) {
     const video = this._video;
     if (!video) return;
     if (!(video.videoWidth > 0)) return;
     if (!video.seeking && video.readyState < 2) return;
 
-    // Skip capture if video time hasn't advanced (avoids redundant IPC for
-    // paused/stalled content). During seeking we always capture to feed the
-    // scrubbing preview.
     const ct = video.currentTime;
+    // During seeking, don't re-send the same frame
+    if (video.seeking && ct === this._lastSentTime) return;
+    // Outside seeking, skip if video time hasn't advanced
     if (!video.seeking && ct === this._lastFrameTime) return;
     this._lastFrameTime = ct;
+
 
     const maxDim = parseInt(quality, 10) || MAX_FRAME_DIMENSION;
     const { tw, th } = this._encodeSize(video.videoWidth, video.videoHeight, maxDim);
@@ -200,6 +220,7 @@ export class ZenMediaPreviewChild extends JSWindowActorChild {
     try {
       ctx.drawImage(video, 0, 0, tw, th);
       const img = ctx.getImageData(0, 0, tw, th);
+      this._lastSentTime = ct;
       this.sendAsyncMessage("ZenPiP:Frame", {
         buf: img.data.buffer,
         width: tw,
@@ -245,11 +266,15 @@ export class ZenMediaPreviewChild extends JSWindowActorChild {
     this._scaleCtx = null;
     this._lastFrameTime = -1;
     this._lastPlaying = false;
+    this._lastSentTime = null;
+    this._lastQuality = null;
+    this._stopSeekLoop();
   }
 
   async receiveMessage(msg) {
     if (msg.name === "ZenPiP:Tick") {
-      this._captureFrame(msg.data?.quality);
+      this._lastQuality = msg.data?.quality;
+      this._captureFrame(this._lastQuality);
       return;
     }
     if (msg.name === "ZenPiP:Stop") {
