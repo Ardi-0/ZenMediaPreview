@@ -39,13 +39,16 @@ export class ZenMediaPreviewChild extends JSWindowActorChild {
     }
 
     if (event.type === "seeking") {
-      // Don't stop ticks during seeking — we want frames to flow for the
-      // scrubbing preview. Only stall/wait triggers tick slowdown.
+      // During scrubbing the browser fires pause first, which sets playing=false.
+      // Re-enable playing so ticks flow at full rate while the user drags.
+      if (target === this._video) {
+        this._notifyPlaying(true);
+      }
       return;
     }
 
     if (event.type === "seeked") {
-      // No state change needed — seeking didn't toggle playing flag
+      // State already set to true by seeking handler above.
       return;
     }
 
