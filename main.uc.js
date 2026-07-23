@@ -143,6 +143,10 @@
     // Neutralize the media player's own top margin so the gap is
     // controlled entirely by the wrap's margin-bottom.
     musicPlayerUI.style.marginTop = "0";
+    // Remove parent flex gap and previous sibling's bottom margin
+    // so the wrap's margin-top is the sole controller of top spacing.
+    try { musicPlayerUI.parentNode.style.gap = "0"; } catch (_) {}
+    try { if (wrap.previousElementSibling) wrap.previousElementSibling.style.marginBottom = "0"; } catch (_) {}
   }
   applyMarginPrefs();
   // Poll prefs every 2s so changes from Sine settings take effect live
