@@ -131,7 +131,8 @@
   const MARGIN_PREFS = ["mod.zenmediapreview.margin-top", "mod.zenmediapreview.margin-bottom", "mod.zenmediapreview.player-hover-offset"];
   function getMarginPref(name, defaultVal) {
     try {
-      return parseInt(Services.prefs.getStringPref("mod.zenmediapreview." + name, String(defaultVal)), 10) || defaultVal;
+      const v = parseInt(Services.prefs.getStringPref("mod.zenmediapreview." + name, String(defaultVal)), 10);
+      return isNaN(v) ? defaultVal : v;
     } catch (_) { return defaultVal; }
   }
   function applyMarginPrefs() {
