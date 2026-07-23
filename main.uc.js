@@ -28,6 +28,9 @@
     const branch = Services.prefs.getDefaultBranch("mod.zenmediapreview.");
     branch.setStringPref("quality", "480");
     branch.setIntPref("framerate", 20);
+    branch.setIntPref("margin-top", 0);
+    branch.setIntPref("margin-bottom", 0);
+    branch.setIntPref("player-hover-offset", 70);
   } catch (_) {}
 
   const MUSIC_PLAYER_SELECTORS =
@@ -55,7 +58,7 @@
       display: grid;
       grid-template-rows: 0fr;
       transition: grid-template-rows ${ANIM_MS}ms ease, margin ${ANIM_MS}ms ease;
-      margin: 0;
+      margin: var(--zsp-mt, 0) auto;
     }
     #zsp-wrap.zsp-open {
       grid-template-rows: 1fr;
@@ -63,10 +66,12 @@
       z-index: 2;
     }
     #zsp-wrap.zsp-open:not(.zsp-player-hover) {
-      margin: 0 6px;
+      margin: var(--zsp-mt, 0) auto var(--zsp-mb, 0);
+      max-width: calc(100% - 12px);
     }
     #zsp-wrap.zsp-open.zsp-player-hover {
-      margin: 0 6px 70px;
+      margin: var(--zsp-mt, 0) auto var(--zsp-ho, 70px);
+      max-width: calc(100% - 12px);
     }
     #zsp-wrap[hidden] {
       display: none !important;
@@ -74,7 +79,7 @@
     /* Hide preview when sidebar is collapsed (native compact + StormAnon mod) */
     #navigator-toolbox:not(:is(:hover, [zen-expanded="true"], [zen-has-hover])) #zsp-wrap.zsp-open {
       grid-template-rows: 0fr;
-      margin: 0;
+      margin: var(--zsp-mt, 0) auto 0;
     }
     #zsp-inner {
       overflow: hidden;
@@ -122,6 +127,17 @@
   inner.appendChild(canvas);
   wrap.appendChild(inner);
   musicPlayerUI.parentNode.insertBefore(wrap, musicPlayerUI);
+
+  // Apply user preferences as CSS custom properties on the wrap element
+  try {
+    const prefs = Services.prefs.getBranch("mod.zenmediapreview.");
+    const mt = prefs.getIntPref("margin-top", 0);
+    const mb = prefs.getIntPref("margin-bottom", 0);
+    const ho = prefs.getIntPref("player-hover-offset", 70);
+    wrap.style.setProperty("--zsp-mt", mt + "px");
+    wrap.style.setProperty("--zsp-mb", mb + "px");
+    wrap.style.setProperty("--zsp-ho", ho + "px");
+  } catch (_) {}
 
   // Toggle button: both on preview panel and in media player toolbar
   // --- toolbar button ---

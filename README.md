@@ -67,7 +67,3 @@ Set in `about:config`.
 | [StormAnon sidebar-expand-on-hover](https://github.com/StormAnon/zen-sidebar-expand-on-hover) | ✅ |
 | Picture-in-Picture (PiP) | ✅ preview hides when PiP is active |
 | Right‑sided sidebar | ✅ |
-
-## Credits
-
-Frame‑capture pipeline adapted from [Zenslop](https://github.com/Firebolt9907/Zenslop) by Firebolt9907.
