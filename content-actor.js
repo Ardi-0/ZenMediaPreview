@@ -170,13 +170,14 @@ export class ZenMediaPreviewChild extends JSWindowActorChild {
   _captureFrame(quality) {
     const video = this._video;
     if (!video) return;
-    if (!(video.videoWidth > 0) || video.readyState < 2) return;
+    if (!(video.videoWidth > 0)) return;
+    if (!video.seeking && video.readyState < 2) return;
 
     // Skip capture if video time hasn't advanced (avoids redundant IPC for
-    // paused/stalled content). Note: we intentionally allow seek-through,
-    // so only filter truly identical timestamps.
+    // paused/stalled content). During seeking we always capture to feed the
+    // scrubbing preview.
     const ct = video.currentTime;
-    if (ct === this._lastFrameTime) return;
+    if (!video.seeking && ct === this._lastFrameTime) return;
     this._lastFrameTime = ct;
 
     const maxDim = parseInt(quality, 10) || MAX_FRAME_DIMENSION;
