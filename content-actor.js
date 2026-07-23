@@ -56,7 +56,13 @@ export class ZenMediaPreviewChild extends JSWindowActorChild {
       return;
     }
 
-    if (event.type === "pause" || event.type === "ended" || event.type === "emptied") {
+    if (event.type === "pause") {
+      if (target !== this._video) return;
+      this._notifyPlaying(false);
+      return;
+    }
+
+    if (event.type === "ended" || event.type === "emptied") {
       if (target !== this._video) return;
       this._notifyPlaying(false);
       this._stopAndNotify("event:" + event.type);
@@ -232,6 +238,17 @@ export class ZenMediaPreviewChild extends JSWindowActorChild {
     }
     if (msg.name === "ZenPiP:Stop") {
       this._stopAndNotify("parent:stop");
+      return;
+    }
+    if (msg.name === "ZenPiP:TogglePlay") {
+      if (!this._video) return;
+      try {
+        if (this._video.paused || this._video.ended) {
+          this._video.play();
+        } else {
+          this._video.pause();
+        }
+      } catch (_) {}
     }
   }
 

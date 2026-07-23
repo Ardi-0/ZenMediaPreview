@@ -172,6 +172,15 @@
   musicPlayerUI.addEventListener("mouseenter", () => wrap.classList.add("zsp-player-hover"));
   musicPlayerUI.addEventListener("mouseleave", () => wrap.classList.remove("zsp-player-hover"));
 
+  // Click on the preview toggles play/pause of the source video.
+  wrap.addEventListener("click", () => {
+    if (!sourceBC) return;
+    try {
+      const info = actorRegistry.get(sourceBC.id);
+      if (info && info.actor) info.actor.sendAsyncMessage("ZenPiP:TogglePlay", {});
+    } catch (_) {}
+  });
+
   // Re-check visibility whenever the media player's hidden/display state changes.
   const mpObserver = new MutationObserver(() => updateVisibility());
   mpObserver.observe(musicPlayerUI, { attributes: true, attributeFilter: ["hidden", "style"] });
@@ -288,10 +297,7 @@
         try {
           const bcId = getActiveMediaBC();
           if (!bcId) {
-            setMediaPlayerVisible(true);
-            if (sourceBC) {
-              window.ZenPiPController.hideVideo();
-            }
+            if (sourceBC) return; // paused, keep the last frame visible
             return;
           }
           if (sourceBC && sourceBC.id === bcId) return;
@@ -309,7 +315,7 @@
             return;
           }
           setMediaPlayerVisible(true);
-          const src = availableSources.get(bcId) || findAudible();
+          const src = availableSources.get(bcId);
           if (src) {
             window.ZenPiPController._activateSource(src.width, src.height, src.bc);
           } else {

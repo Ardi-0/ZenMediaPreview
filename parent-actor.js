@@ -32,6 +32,7 @@ export class ZenMediaPreviewParent extends JSWindowActorParent {
             startTick: (w) => { this._startTicking(w); },
             stopTick: () => { this._stopTicking(); },
             win,
+            actor: this,
           });
           controller.offerVideo(msg.data.width, msg.data.height, this.browsingContext);
         }
