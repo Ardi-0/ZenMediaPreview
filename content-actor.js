@@ -73,7 +73,10 @@ export class ZenMediaPreviewChild extends JSWindowActorChild {
     if (event.type === "pause" || event.type === "ended" || event.type === "emptied") {
       if (target !== this._video) return;
       this._notifyPlaying(false);
-      this._stopAndNotify("event:" + event.type);
+      // Don't stop mirror on pause — user may scrub and needs the preview.
+      if (event.type !== "pause") {
+        this._stopAndNotify("event:" + event.type);
+      }
     }
   }
 
