@@ -214,6 +214,7 @@
   let isStreaming = false;
   let sourceTabActive = false;
   let sourceBC = null;
+  let _sourcePlaying = true;
   let _collapseCleanupTimer = null;
   let _visibilityPending = false;
   const availableSources = new Map();
@@ -383,14 +384,14 @@
     requestAnimationFrame(() => {
       _visibilityPending = false;
       const userHidden = wrap.hasAttribute("hidden");
-      const shouldShow = !userHidden && isStreaming && !sourceTabActive && mediaPlayerVisible();
+      const shouldShow = !userHidden && isStreaming && !sourceTabActive && mediaPlayerVisible() && _sourcePlaying;
       const isOpen = wrap.classList.contains("zsp-open");
 
       if (shouldShow && !isOpen) {
         wrap.classList.add("zsp-animate-in");
         requestAnimationFrame(() => {
           requestAnimationFrame(() => {
-            if (!userHidden && isStreaming && !sourceTabActive && mediaPlayerVisible()) {
+            if (!userHidden && isStreaming && !sourceTabActive && mediaPlayerVisible() && _sourcePlaying) {
               wrap.classList.add("zsp-open");
             } else {
               wrap.classList.remove("zsp-animate-in");
@@ -430,6 +431,11 @@
       sourceTabActive = active;
       updateVisibility();
     },
+    setSourcePlaying(bcId, playing) {
+      if (!sourceBC || sourceBC.id !== bcId) return;
+      _sourcePlaying = playing;
+      updateVisibility();
+    },
     registerSource(id, callbacks) {
       if (!actorRegistry.has(id)) actorRegistry.set(id, callbacks);
     },
@@ -458,6 +464,7 @@
       if (sourceBC && sourceBC.id === bc.id) {
         sourceBC = null;
         isStreaming = false;
+        _sourcePlaying = true;
         const alt = findAudible();
         if (alt) {
           window.ZenPiPController._activateSource(alt.width, alt.height, alt.bc);
@@ -471,6 +478,7 @@
       log("showVideo", width, "x", height, "tab", browsingContext?.id);
       safe(() => canvasCtx.clearRect(0, 0, canvas.width, canvas.height));
       setAspect(width, height);
+      _sourcePlaying = true;
       // Stop previous source's tick to save CPU/IPC
       if (sourceBC && sourceBC.id !== browsingContext.id) {
         const prevInfo = actorRegistry.get(sourceBC.id);
@@ -496,6 +504,7 @@
     hideVideo() {
       isStreaming = false;
       sourceBC = null;
+      _sourcePlaying = true;
       updateVisibility();
       safe(() => canvasCtx.clearRect(0, 0, canvas.width, canvas.height));
     },
