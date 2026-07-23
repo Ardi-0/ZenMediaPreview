@@ -39,13 +39,13 @@ export class ZenMediaPreviewChild extends JSWindowActorChild {
     }
 
     if (event.type === "seeking") {
+      // During scrubbing the browser fires pause first, which sets playing=false.
+      // Re-enable playing so ticks flow at full rate while the user drags.
       if (target === this._video) {
         this._notifyPlaying(true);
+        // Try to capture right away — for locally-buffered content the
+        // frame at the new position might be available immediately.
         this._trySeekCapture();
-        // Tell parent to show nearest cached frame during scrub
-        try {
-          this.sendAsyncMessage("ZenPiP:Seeking", { time: target.currentTime });
-        } catch (_) {}
       }
       return;
     }
@@ -229,12 +229,13 @@ export class ZenMediaPreviewChild extends JSWindowActorChild {
       ctx.drawImage(video, 0, 0, tw, th);
       const img = ctx.getImageData(0, 0, tw, th);
       this._lastSentTime = ct;
+      // Only update _lastFrameTime when NOT seeking, otherwise the
+      // seeked handler's _captureFrame call would be blocked.
       if (!video.seeking) this._lastFrameTime = ct;
       this.sendAsyncMessage("ZenPiP:Frame", {
         buf: img.data.buffer,
         width: tw,
         height: th,
-        time: ct,
       }, [img.data.buffer]);
     } catch (e) {
       this._debug("_captureFrame threw:", String(e), e?.name, e?.message);
