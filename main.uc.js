@@ -68,6 +68,9 @@
     #zsp-wrap.zsp-open.zsp-player-hover {
       margin: 0 6px 70px;
     }
+    #zsp-wrap[hidden] {
+      display: none !important;
+    }
     /* Hide preview when sidebar is collapsed (native compact + StormAnon mod) */
     #navigator-toolbox:not(:is(:hover, [zen-expanded="true"], [zen-has-hover])) #zsp-wrap.zsp-open {
       grid-template-rows: 0fr;
@@ -114,21 +117,28 @@
   wrap.appendChild(inner);
   musicPlayerUI.parentNode.insertBefore(wrap, musicPlayerUI);
 
-  // Simple toggle button
-  const toggleBtn = document.createElement("toolbarbutton");
-  toggleBtn.id = "zsp-toggle";
-  toggleBtn.className = "toolbarbutton-1 chromeclass-toolbar-additional";
-  toggleBtn.setAttribute("label", "Preview");
-  toggleBtn.setAttribute("type", "checkbox");
-  toggleBtn.setAttribute("tooltiptext", "Show/Hide Video Preview");
-  toggleBtn.setAttribute("checked", "true");
-  toggleBtn.addEventListener("click", () => {
-    const checked = toggleBtn.getAttribute("checked") === "true";
-    toggleBtn.setAttribute("checked", checked ? "false" : "true");
-    updateVisibility();
-  });
-  const toolbar = document.querySelector("#zen-media-controls-toolbar .toolbar-items") || musicPlayerUI;
-  toolbar.appendChild(toggleBtn);
+  // Toggle button: both on preview panel and in media player toolbar
+  // --- toolbar button ---
+  (function addToolbarBtn() {
+    const btn = document.createElement("toolbarbutton");
+    btn.id = "zsp-toggle";
+    btn.setAttribute("label", "⏻");
+    btn.setAttribute("tooltiptext", "Show/Hide Video Preview");
+    btn.setAttribute("class", "toolbarbutton-1 chromeclass-toolbar-additional");
+    btn.addEventListener("click", () => {
+      const hidden = wrap.hasAttribute("hidden");
+      if (hidden) wrap.removeAttribute("hidden");
+      else wrap.setAttribute("hidden", "");
+      updateVisibility();
+    });
+    const pipBtn = document.querySelector("#zen-media-controls-toolbar [picture-in-picture]");
+    if (pipBtn && pipBtn.parentNode) {
+      pipBtn.parentNode.insertBefore(btn, pipBtn.nextSibling);
+    } else {
+      const tb = document.querySelector("#zen-media-controls-toolbar") || musicPlayerUI;
+      tb.appendChild(btn);
+    }
+  })();
 
   // Update sourceTabActive when user switches tabs
   gBrowser.tabContainer.addEventListener("TabSelect", () => {
@@ -358,16 +368,15 @@
     _visibilityPending = true;
     requestAnimationFrame(() => {
       _visibilityPending = false;
-      const btn = document.getElementById("zsp-toggle");
-      const enabled = !btn || btn.getAttribute("checked") === "true";
-      const shouldShow = enabled && isStreaming && !sourceTabActive && mediaPlayerVisible();
+      const userHidden = wrap.hasAttribute("hidden");
+      const shouldShow = !userHidden && isStreaming && !sourceTabActive && mediaPlayerVisible();
       const isOpen = wrap.classList.contains("zsp-open");
 
       if (shouldShow && !isOpen) {
         wrap.classList.add("zsp-animate-in");
         requestAnimationFrame(() => {
           requestAnimationFrame(() => {
-            if (enabled && isStreaming && !sourceTabActive && mediaPlayerVisible()) {
+            if (!userHidden && isStreaming && !sourceTabActive && mediaPlayerVisible()) {
               wrap.classList.add("zsp-open");
             } else {
               wrap.classList.remove("zsp-animate-in");
