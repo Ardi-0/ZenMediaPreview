@@ -128,15 +128,34 @@
   wrap.appendChild(inner);
   musicPlayerUI.parentNode.insertBefore(wrap, musicPlayerUI);
 
-  // Apply user preferences as CSS custom properties on the wrap element
+  // Apply user preferences as CSS custom properties on the wrap element,
+  // and update live when the user changes them in Sine settings / about:config.
+  const MARGIN_PREFS = ["margin-top", "margin-bottom", "player-hover-offset"];
+  function applyMarginPrefs() {
+    try {
+      const prefs = Services.prefs.getBranch("mod.zenmediapreview.");
+      const mt = prefs.getIntPref("margin-top", 0);
+      const mb = prefs.getIntPref("margin-bottom", 0);
+      const ho = prefs.getIntPref("player-hover-offset", 70);
+      wrap.style.setProperty("--zsp-mt", mt + "px");
+      wrap.style.setProperty("--zsp-mb", mb + "px");
+      wrap.style.setProperty("--zsp-ho", ho + "px");
+    } catch (_) {}
+  }
+  applyMarginPrefs();
   try {
-    const prefs = Services.prefs.getBranch("mod.zenmediapreview.");
-    const mt = prefs.getIntPref("margin-top", 0);
-    const mb = prefs.getIntPref("margin-bottom", 0);
-    const ho = prefs.getIntPref("player-hover-offset", 70);
-    wrap.style.setProperty("--zsp-mt", mt + "px");
-    wrap.style.setProperty("--zsp-mb", mb + "px");
-    wrap.style.setProperty("--zsp-ho", ho + "px");
+    const observer = {
+      observe(subject, topic, data) {
+        if (topic === "nsPref:changed" && MARGIN_PREFS.includes(data)) {
+          applyMarginPrefs();
+        }
+      },
+    };
+    const branch = Services.prefs.getBranch("mod.zenmediapreview.");
+    for (const p of MARGIN_PREFS) branch.addObserver(p, observer);
+    window.addEventListener("unload", () => {
+      for (const p of MARGIN_PREFS) branch.removeObserver(p, observer);
+    });
   } catch (_) {}
 
   // Toggle button: both on preview panel and in media player toolbar
