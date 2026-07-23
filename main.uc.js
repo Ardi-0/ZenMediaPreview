@@ -28,9 +28,9 @@
     const branch = Services.prefs.getDefaultBranch("mod.zenmediapreview.");
     branch.setStringPref("quality", "480");
     branch.setIntPref("framerate", 20);
-    branch.setStringPref("margin-top", "2");
-    branch.setStringPref("margin-bottom", "4");
-    branch.setStringPref("player-hover-offset", "70");
+    branch.setStringPref("margin-top", "0");
+    branch.setStringPref("margin-bottom", "0");
+    branch.setStringPref("player-hover-offset", "0");
   } catch (_) {}
 
   const MUSIC_PLAYER_SELECTORS =
@@ -58,7 +58,7 @@
       display: grid;
       grid-template-rows: 0fr;
       transition: grid-template-rows ${ANIM_MS}ms ease, margin ${ANIM_MS}ms ease;
-      margin: var(--zsp-mt, 2px) 6px;
+      margin: calc(2px + var(--zsp-mt, 0px)) 6px;
     }
     #zsp-wrap.zsp-open {
       grid-template-rows: 1fr;
@@ -66,10 +66,10 @@
       z-index: 2;
     }
     #zsp-wrap.zsp-open:not(.zsp-player-hover) {
-      margin: var(--zsp-mt, 2px) 6px var(--zsp-mb, 4px);
+      margin: calc(2px + var(--zsp-mt, 0px)) 6px calc(4px + var(--zsp-mb, 0px));
     }
     #zsp-wrap.zsp-open.zsp-player-hover {
-      margin: var(--zsp-mt, 2px) 6px var(--zsp-ho, 70px);
+      margin: calc(2px + var(--zsp-mt, 0px)) 6px calc(70px + var(--zsp-ho, 0px));
     }
     #zsp-wrap[hidden] {
       display: none !important;
@@ -77,7 +77,7 @@
     /* Hide preview when sidebar is collapsed (native compact + StormAnon mod) */
     #navigator-toolbox:not(:is(:hover, [zen-expanded="true"], [zen-has-hover])) #zsp-wrap.zsp-open {
       grid-template-rows: 0fr;
-      margin: var(--zsp-mt, 2px) 6px 0;
+      margin: calc(2px + var(--zsp-mt, 0px)) 6px 0;
     }
     #zsp-inner {
       overflow: hidden;
@@ -126,46 +126,25 @@
   wrap.appendChild(inner);
   musicPlayerUI.parentNode.insertBefore(wrap, musicPlayerUI);
 
-  // Apply user preferences as CSS custom properties on the wrap element.
-  // The baseline gap (from Zen's sidebar layout) is measured once the
-  // preview becomes visible, so the user's pref value always corresponds
-  // to the visible pixel gap.
+  // Apply user preferences as additive CSS custom properties.
+  // The hardcoded base values are in the CSS (2px top, 4px bottom,
+  // 70px hover); the pref value adds on top (or subtracts if negative).
   const MARGIN_PREFS = ["mod.zenmediapreview.margin-top", "mod.zenmediapreview.margin-bottom", "mod.zenmediapreview.player-hover-offset"];
-  let _baseTop = 0, _baseBottom = 0, _baseMeasured = false;
-  function measureBaseline() {
-    if (_baseMeasured) return;
-    try {
-      const wrapRect = wrap.getBoundingClientRect();
-      if (wrapRect.width === 0 || wrapRect.height === 0) return;
-      const prev = wrap.previousElementSibling;
-      if (prev) {
-        const prevRect = prev.getBoundingClientRect();
-        _baseTop = Math.max(0, prevRect.bottom - wrapRect.top + 2);
-      }
-      _baseBottom = Math.max(0, musicPlayerUI.getBoundingClientRect().top - wrapRect.bottom + 4);
-      _baseMeasured = true;
-    } catch (_) {}
-  }
   function getMarginPref(name, defaultVal) {
     try {
       return parseInt(Services.prefs.getStringPref("mod.zenmediapreview." + name, String(defaultVal)), 10) || defaultVal;
     } catch (_) { return defaultVal; }
   }
   function applyMarginPrefs() {
-    measureBaseline();
-    const useB = _baseMeasured;
-    const mt = getMarginPref("margin-top", 2);
-    const mb = getMarginPref("margin-bottom", 4);
-    const ho = getMarginPref("player-hover-offset", 70);
-    wrap.style.setProperty("--zsp-mt", (mt - (useB ? _baseTop : 0)) + "px");
-    wrap.style.setProperty("--zsp-mb", (mb - (useB ? _baseBottom : 0)) + "px");
-    wrap.style.setProperty("--zsp-ho", (mb + ho - (useB ? _baseBottom : 0)) + "px");
-    musicPlayerUI.style.marginTop = "0";
+    const mt = getMarginPref("margin-top", 0);
+    const mb = getMarginPref("margin-bottom", 0);
+    const ho = getMarginPref("player-hover-offset", 0);
+    wrap.style.setProperty("--zsp-mt", mt + "px");
+    wrap.style.setProperty("--zsp-mb", mb + "px");
+    wrap.style.setProperty("--zsp-ho", ho + "px");
   }
   applyMarginPrefs();
-  // Poll prefs every 2s so changes from Sine settings take effect live.
-  // Also re-measures baseline on first visible frame.
-  try { setInterval(() => { measureBaseline(); applyMarginPrefs(); }, 2000); } catch (_) {}
+  try { setInterval(applyMarginPrefs, 2000); } catch (_) {}
 
   // Toggle button: both on preview panel and in media player toolbar
   // --- toolbar button ---
@@ -432,7 +411,6 @@
     _visibilityPending = true;
     requestAnimationFrame(() => {
       _visibilityPending = false;
-      measureBaseline();
       applyMarginPrefs();
       const userHidden = wrap.hasAttribute("hidden");
       const shouldShow = !userHidden && isStreaming && !sourceTabActive && mediaPlayerVisible();
