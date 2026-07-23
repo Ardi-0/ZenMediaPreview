@@ -128,9 +128,9 @@
   wrap.appendChild(inner);
   musicPlayerUI.parentNode.insertBefore(wrap, musicPlayerUI);
 
-  // Apply user preferences as CSS custom properties on the wrap element,
-  // and update live when the user changes them in Sine settings / about:config.
-  const MARGIN_PREFS = ["margin-top", "margin-bottom", "player-hover-offset"];
+  // Apply user preferences as CSS custom properties on the wrap element.
+  // Re-applied whenever a source activates so changes take effect live.
+  const MARGIN_PREFS = ["mod.zenmediapreview.margin-top", "mod.zenmediapreview.margin-bottom", "mod.zenmediapreview.player-hover-offset"];
   function getMarginPref(name, defaultVal) {
     const full = "mod.zenmediapreview." + name;
     try { return Services.prefs.getIntPref(full, defaultVal); } catch (_) {}
@@ -146,6 +146,7 @@
     wrap.style.setProperty("--zsp-ho", ho + "px");
   }
   applyMarginPrefs();
+  // Listen for pref changes live
   try {
     const observer = {
       observe(subject, topic, data) {
@@ -154,10 +155,9 @@
         }
       },
     };
-    const branch = Services.prefs.getBranch("mod.zenmediapreview.");
-    for (const p of MARGIN_PREFS) branch.addObserver(p, observer);
+    for (const p of MARGIN_PREFS) Services.prefs.addObserver(p, observer);
     window.addEventListener("unload", () => {
-      for (const p of MARGIN_PREFS) branch.removeObserver(p, observer);
+      for (const p of MARGIN_PREFS) Services.prefs.removeObserver(p, observer);
     });
   } catch (_) {}
 
@@ -535,6 +535,7 @@
         log("_activateSource: no actor registered for", browsingContext.id, "– preview won't stream");
         isStreaming = false;
       }
+      applyMarginPrefs();
       updateVisibility();
     },
     hideVideo() {
