@@ -38,7 +38,7 @@
   },
   {
     "property": "mod.zenmediapreview.player-hover-offset",
-    "label": "Bottom Padding (px) — expanded player",
+    "label": "Extra Bottom Padding (px) — expanded player (on hover)",
     "type": "string",
     "defaultValue": "70"
   }

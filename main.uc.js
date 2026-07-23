@@ -139,7 +139,7 @@
     const ho = getMarginPref("player-hover-offset", 70);
     wrap.style.setProperty("--zsp-mt", mt + "px");
     wrap.style.setProperty("--zsp-mb", mb + "px");
-    wrap.style.setProperty("--zsp-ho", ho + "px");
+    wrap.style.setProperty("--zsp-ho", (mb + ho) + "px");
     // Neutralize the media player's own top margin so the gap is
     // controlled entirely by the wrap's margin-bottom.
     musicPlayerUI.style.marginTop = "0";
