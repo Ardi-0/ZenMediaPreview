@@ -43,16 +43,18 @@ export class ZenMediaPreviewChild extends JSWindowActorChild {
       // Re-enable playing so ticks flow at full rate while the user drags.
       if (target === this._video) {
         this._notifyPlaying(true);
-        this._startSeekLoop();
+        // Try to capture right away — for locally-buffered content the
+        // frame at the new position might be available immediately.
+        this._trySeekCapture();
       }
       return;
     }
 
     if (event.type === "seeked") {
-      // Reset playing to the actual video state after seek completes.
-      // This prevents wasted ticks when scrubbing a paused video.
+      // Capture the frame at the new position. drawImage(video) works at
+      // seeked because the seek is complete and frame is decoded.
       if (target === this._video) {
-        this._stopSeekLoop();
+        this._captureFrame(this._lastQuality);
         this._notifyPlaying(!target.paused && !target.ended);
       }
       return;
@@ -94,22 +96,16 @@ export class ZenMediaPreviewChild extends JSWindowActorChild {
     } catch (_) {}
   }
 
-  _startSeekLoop() {
-    if (this._seekRAF) return;
-    const loop = () => {
-      if (!this._video?.seeking) { this._seekRAF = null; return; }
-      this._captureFrame(this._lastQuality);
-      this._seekRAF = this.contentWindow.requestAnimationFrame(loop);
-    };
-    this._seekRAF = this.contentWindow.requestAnimationFrame(loop);
-  }
-
-  _stopSeekLoop() {
-    if (this._seekRAF) {
-      try { this.contentWindow?.cancelAnimationFrame(this._seekRAF); } catch (_) {}
-      this._seekRAF = null;
+  _trySeekCapture() {
+    // Immediate attempt — works for instantly-buffered seeks.
+    this._captureFrame(this._lastQuality);
+    // Also try on the next rAF in case the frame isn't decoded yet.
+    if (!this._seekCaptureRAF) {
+      this._seekCaptureRAF = this.contentWindow.requestAnimationFrame(() => {
+        this._seekCaptureRAF = null;
+        this._captureFrame(this._lastQuality);
+      });
     }
-    this._lastSentTime = null;
   }
 
   _isAudible(video) {
@@ -200,12 +196,10 @@ export class ZenMediaPreviewChild extends JSWindowActorChild {
     if (!video.seeking && video.readyState < 2) return;
 
     const ct = video.currentTime;
-    // During seeking, don't re-send the same frame
-    if (video.seeking && ct === this._lastSentTime) return;
-    // Outside seeking, skip if video time hasn't advanced
+    // Outside seeking: skip if no time advance (prevents duplicate frames during pause/stall)
     if (!video.seeking && ct === this._lastFrameTime) return;
-    this._lastFrameTime = ct;
-
+    // During seeking: briefly skip the same position to avoid hammering drawImage
+    if (video.seeking && ct === this._lastSentTime) return;
 
     const maxDim = parseInt(quality, 10) || MAX_FRAME_DIMENSION;
     const { tw, th } = this._encodeSize(video.videoWidth, video.videoHeight, maxDim);
@@ -221,6 +215,9 @@ export class ZenMediaPreviewChild extends JSWindowActorChild {
       ctx.drawImage(video, 0, 0, tw, th);
       const img = ctx.getImageData(0, 0, tw, th);
       this._lastSentTime = ct;
+      // Only update _lastFrameTime when NOT seeking, otherwise the
+      // seeked handler's _captureFrame call would be blocked.
+      if (!video.seeking) this._lastFrameTime = ct;
       this.sendAsyncMessage("ZenPiP:Frame", {
         buf: img.data.buffer,
         width: tw,
@@ -268,7 +265,10 @@ export class ZenMediaPreviewChild extends JSWindowActorChild {
     this._lastPlaying = false;
     this._lastSentTime = null;
     this._lastQuality = null;
-    this._stopSeekLoop();
+    if (this._seekCaptureRAF) {
+      try { this.contentWindow?.cancelAnimationFrame(this._seekCaptureRAF); } catch (_) {}
+      this._seekCaptureRAF = null;
+    }
   }
 
   async receiveMessage(msg) {
