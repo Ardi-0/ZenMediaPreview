@@ -131,16 +131,19 @@
   // Apply user preferences as CSS custom properties on the wrap element,
   // and update live when the user changes them in Sine settings / about:config.
   const MARGIN_PREFS = ["margin-top", "margin-bottom", "player-hover-offset"];
+  function getMarginPref(name, defaultVal) {
+    const full = "mod.zenmediapreview." + name;
+    try { return Services.prefs.getIntPref(full, defaultVal); } catch (_) {}
+    try { return parseInt(Services.prefs.getStringPref(full, String(defaultVal)), 10) || defaultVal; } catch (_) {}
+    return defaultVal;
+  }
   function applyMarginPrefs() {
-    try {
-      const prefs = Services.prefs.getBranch("mod.zenmediapreview.");
-      const mt = prefs.getIntPref("margin-top", 0);
-      const mb = prefs.getIntPref("margin-bottom", 0);
-      const ho = prefs.getIntPref("player-hover-offset", 70);
-      wrap.style.setProperty("--zsp-mt", mt + "px");
-      wrap.style.setProperty("--zsp-mb", mb + "px");
-      wrap.style.setProperty("--zsp-ho", ho + "px");
-    } catch (_) {}
+    const mt = getMarginPref("margin-top", 0);
+    const mb = getMarginPref("margin-bottom", 0);
+    const ho = getMarginPref("player-hover-offset", 70);
+    wrap.style.setProperty("--zsp-mt", mt + "px");
+    wrap.style.setProperty("--zsp-mb", mb + "px");
+    wrap.style.setProperty("--zsp-ho", ho + "px");
   }
   applyMarginPrefs();
   try {

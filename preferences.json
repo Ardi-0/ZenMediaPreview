@@ -27,19 +27,19 @@
   {
     "property": "mod.zenmediapreview.margin-top",
     "label": "Top Padding (px)",
-    "type": "text",
+    "type": "string",
     "defaultValue": "0"
   },
   {
     "property": "mod.zenmediapreview.margin-bottom",
     "label": "Bottom Padding (px) — collapsed player",
-    "type": "text",
+    "type": "string",
     "defaultValue": "0"
   },
   {
     "property": "mod.zenmediapreview.player-hover-offset",
     "label": "Bottom Padding (px) — expanded player",
-    "type": "text",
+    "type": "string",
     "defaultValue": "70"
   }
 ]
