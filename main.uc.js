@@ -126,7 +126,8 @@
   // Toggle button: both on preview panel and in media player toolbar
   // --- toolbar button ---
   (function addToolbarBtn() {
-    const btn = document.createElement("toolbarbutton");
+    const XUL_NS = "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul";
+    const btn = document.createElementNS(XUL_NS, "toolbarbutton");
     btn.id = "zsp-toggle";
     btn.setAttribute("tooltiptext", "Show/Hide Video Preview");
     btn.setAttribute("class", "toolbarbutton-1 chromeclass-toolbar-additional");
@@ -141,12 +142,15 @@
       }
       updateVisibility();
     });
-    const pipBtn = document.querySelector("#zen-media-controls-toolbar [picture-in-picture]");
-    if (pipBtn && pipBtn.parentNode) {
-      pipBtn.parentNode.insertBefore(btn, pipBtn.nextSibling);
-    } else {
-      const tb = document.querySelector("#zen-media-controls-toolbar toolbaritem") || document.querySelector("#zen-media-controls-toolbar") || musicPlayerUI;
-      tb.appendChild(btn);
+    // Insert inside the media buttons row, after the PiP button
+    const pipBtn = document.querySelector("#zen-media-pip-button");
+    const target = document.querySelector("#zen-media-buttons-hbox");
+    if (target) {
+      if (pipBtn) {
+        pipBtn.parentNode.insertBefore(btn, pipBtn.nextSibling);
+      } else {
+        target.appendChild(btn);
+      }
     }
   })();
 
