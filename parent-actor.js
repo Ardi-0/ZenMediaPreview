@@ -62,9 +62,8 @@ export class ZenMediaPreviewParent extends JSWindowActorParent {
       case "ZenPiP:PlayState": {
         this._initPlayStates();
         const bcId = this.browsingContext.id;
-        const playing = !!msg.data?.playing;
-        this._playStates.set(bcId, playing);
-        dlog("[ZenMediaPreview/parent] PlayState", bcId, "=", playing);
+        this._playStates.set(bcId, !!msg.data?.playing);
+        dlog("[ZenMediaPreview/parent] PlayState", bcId, "=", msg.data?.playing);
         break;
       }
 
