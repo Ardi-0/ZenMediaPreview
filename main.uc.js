@@ -140,6 +140,9 @@
     wrap.style.setProperty("--zsp-mt", mt + "px");
     wrap.style.setProperty("--zsp-mb", mb + "px");
     wrap.style.setProperty("--zsp-ho", ho + "px");
+    // Neutralize the media player's own top margin so the gap is
+    // controlled entirely by the wrap's margin-bottom.
+    musicPlayerUI.style.marginTop = "0";
   }
   applyMarginPrefs();
   // Poll prefs every 2s so changes from Sine settings take effect live
