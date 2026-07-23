@@ -98,9 +98,17 @@
   inner.id = "zsp-inner";
   const canvas = document.createElement("canvas");
   canvas.id = "zsp-canvas";
-  const canvasCtx = canvas.getContext("2d", {
+  let canvasCtx = canvas.getContext("2d", {
     alpha: false,
     desynchronized: true,
+  });
+  canvas.addEventListener("contextlost", (e) => {
+    e.preventDefault();
+    log("Canvas context lost, waiting for restore...");
+  });
+  canvas.addEventListener("contextrestored", () => {
+    log("Canvas context restored");
+    canvasCtx = canvas.getContext("2d", { alpha: false, desynchronized: true });
   });
   inner.appendChild(canvas);
   wrap.appendChild(inner);
@@ -154,6 +162,7 @@
   let sourceTabActive = false;
   let sourceBC = null;
   let _collapseCleanupTimer = null;
+  let _visibilityPending = false;
   const availableSources = new Map();
   const actorRegistry = new Map();
   const sourceMeta = new Map();
@@ -316,29 +325,34 @@
   } catch (_) {}
 
   function updateVisibility() {
-    const shouldShow = isStreaming && !sourceTabActive && mediaPlayerVisible();
-    const isOpen = wrap.classList.contains("zsp-open");
+    if (_visibilityPending) return;
+    _visibilityPending = true;
+    requestAnimationFrame(() => {
+      _visibilityPending = false;
+      const shouldShow = isStreaming && !sourceTabActive && mediaPlayerVisible();
+      const isOpen = wrap.classList.contains("zsp-open");
 
-    if (shouldShow && !isOpen) {
-      wrap.classList.add("zsp-animate-in");
-      requestAnimationFrame(() => {
+      if (shouldShow && !isOpen) {
+        wrap.classList.add("zsp-animate-in");
         requestAnimationFrame(() => {
-          if (isStreaming && !sourceTabActive && mediaPlayerVisible()) {
-            wrap.classList.add("zsp-open");
-          } else {
+          requestAnimationFrame(() => {
+            if (isStreaming && !sourceTabActive && mediaPlayerVisible()) {
+              wrap.classList.add("zsp-open");
+            } else {
+              wrap.classList.remove("zsp-animate-in");
+            }
+          });
+        });
+      } else if (!shouldShow && isOpen) {
+        wrap.classList.remove("zsp-open");
+        clearTimeout(_collapseCleanupTimer);
+        setTimeout(() => {
+          if (!wrap.classList.contains("zsp-open")) {
             wrap.classList.remove("zsp-animate-in");
           }
-        });
-      });
-    } else if (!shouldShow && isOpen) {
-      wrap.classList.remove("zsp-open");
-      clearTimeout(_collapseCleanupTimer);
-      setTimeout(() => {
-        if (!wrap.classList.contains("zsp-open")) {
-          wrap.classList.remove("zsp-animate-in");
-        }
-      }, ANIM_MS);
-    }
+        }, ANIM_MS);
+      }
+    });
   }
 
   // Minimal controller surface expected by parent-actor.js (unchanged from
@@ -411,13 +425,18 @@
       sourceBC = browsingContext;
       try {
         sourceTabActive =
-          gBrowser?.selectedBrowser?.browsingContext?.id === sourceBC.id;
+          gBrowser?.selectedBrowser?.browsingContext?.id === (sourceBC.top?.id || sourceBC.id);
       } catch (_) {
         sourceTabActive = false;
       }
       isStreaming = true;
       const info = actorRegistry.get(browsingContext.id);
-      if (info) info.startTick(info.win || window);
+      if (info) {
+        info.startTick(info.win || window);
+      } else {
+        log("_activateSource: no actor registered for", browsingContext.id, "– preview won't stream");
+        isStreaming = false;
+      }
       updateVisibility();
     },
     hideVideo() {

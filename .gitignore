@@ -1,0 +1,27 @@
+.ai/
+
+# AI - LLM & Model configs
+*agent.md*
+*.cursorrules*
+*CLAUDE.md*
+.claude/
+.cursor/
+ai-agent/
+copilot/
+ai-sandbox/
+llm-caches/
+model-cache/
+litellm/
+langgraph-state/
+
+# AI - Hugging Face (HF) Cache
+~/.cache/huggingface/*
+.cache/huggingface/*
+
+# AI - Vector Stores & Embeddings
+chroma*
+.venv/
+.env/
+
+# AI - Docker containers with models
+ai-sandbox-docker-compose.yml
