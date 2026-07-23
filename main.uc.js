@@ -28,12 +28,6 @@
     const branch = Services.prefs.getDefaultBranch("mod.zenmediapreview.");
     branch.setStringPref("quality", "480");
     branch.setIntPref("framerate", 20);
-    // Reset old "0" defaults to correct values
-    const marginDefaults = { "margin-top": "2", "margin-bottom": "4", "player-hover-offset": "70" };
-    for (const [key, def] of Object.entries(marginDefaults)) {
-      const cur = branch.getStringPref(key, "");
-      if (cur === "" || cur === "0") branch.setStringPref(key, def);
-    }
   } catch (_) {}
 
   const MUSIC_PLAYER_SELECTORS =
