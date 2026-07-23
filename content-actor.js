@@ -39,13 +39,11 @@ export class ZenMediaPreviewChild extends JSWindowActorChild {
     }
 
     if (event.type === "seeking") {
-      // During scrubbing the browser fires pause first, which sets playing=false.
-      // Re-enable playing so ticks flow at full rate while the user drags.
       if (target === this._video) {
         this._notifyPlaying(true);
-        // Try to capture right away — for locally-buffered content the
-        // frame at the new position might be available immediately.
         this._trySeekCapture();
+        // Send the nearest cached thumbnail for scrubbing preview
+        this._sendCachedFrame(target.currentTime);
       }
       return;
     }
@@ -111,15 +109,76 @@ export class ZenMediaPreviewChild extends JSWindowActorChild {
   }
 
   _trySeekCapture() {
-    // Immediate attempt — works for instantly-buffered seeks.
     this._captureFrame(this._lastQuality);
-    // Also try on the next rAF in case the frame isn't decoded yet.
     if (!this._seekCaptureRAF) {
       this._seekCaptureRAF = this.contentWindow.requestAnimationFrame(() => {
         this._seekCaptureRAF = null;
         this._captureFrame(this._lastQuality);
       });
     }
+  }
+
+  // --- scrub cache ---------------------------------------------------------
+  // Ring buffer of low-res thumbnails captured during playback. When the user
+  // scrubs the timeline, the nearest cached frame is sent as a regular frame
+  // so the preview updates at the scrub position.
+  _initCache() {
+    this._frameCache = [];
+    this._lastCacheTime = 0;
+    this._cacheCanvas = null;
+    this._cacheCtx = null;
+  }
+
+  _cacheFrame(time) {
+    const video = this._video;
+    const win = this.contentWindow;
+    if (!video || !win || video.readyState < 2 || video.seeking) return;
+    const maxDim = 160;
+    const { tw, th } = this._encodeSize(video.videoWidth, video.videoHeight, maxDim);
+    if (!this._cacheCtx || !this._cacheCanvas ||
+        this._cacheCanvas.width !== tw || this._cacheCanvas.height !== th) {
+      if (typeof win.OffscreenCanvas === "function") {
+        this._cacheCanvas = new win.OffscreenCanvas(tw, th);
+      } else {
+        this._cacheCanvas = win.document.createElement("canvas");
+        this._cacheCanvas.width = tw;
+        this._cacheCanvas.height = th;
+      }
+      this._cacheCtx = this._cacheCanvas.getContext("2d", { alpha: false });
+    }
+    try {
+      this._cacheCtx.drawImage(video, 0, 0, tw, th);
+      const img = this._cacheCtx.getImageData(0, 0, tw, th);
+      this._frameCache.push({ time, buf: img.data.buffer, width: tw, height: th });
+      if (this._frameCache.length > 200) this._frameCache.shift();
+    } catch (_) {}
+  }
+
+  _sendCachedFrame(time) {
+    if (this._frameCache.length === 0) return;
+    let lo = 0, hi = this._frameCache.length - 1;
+    while (lo < hi) {
+      const mid = (lo + hi) >> 1;
+      if (this._frameCache[mid].time < time) lo = mid + 1;
+      else hi = mid;
+    }
+    if (lo > 0) {
+      const dPrev = Math.abs(this._frameCache[lo - 1].time - time);
+      const dCurr = Math.abs(this._frameCache[lo].time - time);
+      if (dPrev <= dCurr) lo = lo - 1;
+    }
+    const entry = this._frameCache[lo];
+    if (!entry) return;
+    // Don't re-send the same frame
+    if (entry.time === this._lastSentCacheTime) return;
+    this._lastSentCacheTime = entry.time;
+    try {
+      this.sendAsyncMessage("ZenPiP:Frame", {
+        buf: entry.buf.slice(0),
+        width: entry.width,
+        height: entry.height,
+      });
+    } catch (_) {}
   }
 
   _isAudible(video) {
@@ -158,6 +217,7 @@ export class ZenMediaPreviewChild extends JSWindowActorChild {
 
     this._video = video;
     this._lastFrameTime = -1;
+    this._initCache();
 
     const ctxOpts = { alpha: false, willReadFrequently: true };
     try {
@@ -229,14 +289,20 @@ export class ZenMediaPreviewChild extends JSWindowActorChild {
       ctx.drawImage(video, 0, 0, tw, th);
       const img = ctx.getImageData(0, 0, tw, th);
       this._lastSentTime = ct;
-      // Only update _lastFrameTime when NOT seeking, otherwise the
-      // seeked handler's _captureFrame call would be blocked.
       if (!video.seeking) this._lastFrameTime = ct;
       this.sendAsyncMessage("ZenPiP:Frame", {
         buf: img.data.buffer,
         width: tw,
         height: th,
       }, [img.data.buffer]);
+      // Periodically cache a low-res thumbnail for scrubbing preview
+      if (!video.seeking) {
+        const now = this.contentWindow?.performance.now() || 0;
+        if (now - this._lastCacheTime >= 2000) {
+          this._lastCacheTime = now;
+          this._cacheFrame(ct);
+        }
+      }
     } catch (e) {
       this._debug("_captureFrame threw:", String(e), e?.name, e?.message);
     }
@@ -279,6 +345,10 @@ export class ZenMediaPreviewChild extends JSWindowActorChild {
     this._lastPlaying = false;
     this._lastSentTime = null;
     this._lastQuality = null;
+    this._lastSentCacheTime = null;
+    this._frameCache = null;
+    this._cacheCanvas = null;
+    this._cacheCtx = null;
     if (this._seekCaptureRAF) {
       try { this.contentWindow?.cancelAnimationFrame(this._seekCaptureRAF); } catch (_) {}
       this._seekCaptureRAF = null;
@@ -288,6 +358,9 @@ export class ZenMediaPreviewChild extends JSWindowActorChild {
   async receiveMessage(msg) {
     if (msg.name === "ZenPiP:Tick") {
       this._lastQuality = msg.data?.quality;
+      // During seeking the cache + seeked handler provide frames;
+      // skip regular capture (drawImage returns the old pre-seek frame).
+      if (this._video?.seeking) return;
       this._captureFrame(this._lastQuality);
       return;
     }
