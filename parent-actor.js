@@ -78,6 +78,16 @@ export class ZenMediaPreviewParent extends JSWindowActorParent {
         break;
       }
 
+      case "ZenPiP:Seeking": {
+        const controller = win.ZenPiPController;
+        if (!controller) break;
+        const activeBC = typeof controller.getActiveBC === "function" ? controller.getActiveBC() : null;
+        if (activeBC && activeBC.id === this.browsingContext.id) {
+          controller.drawCachedFrame(msg.data.time);
+        }
+        break;
+      }
+
       case "ZenPiP:VideoStopped": {
         console.log("[ZenMediaPreview/parent] VideoStopped reason:", msg.data?.reason);
         const controller = win.ZenPiPController;

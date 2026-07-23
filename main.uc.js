@@ -220,6 +220,15 @@
   const actorRegistry = new Map();
   const sourceMeta = new Map();
 
+  // Frame cache — ring buffer of low-res thumbnails for scrubbing preview
+  const CACHE_DIM = 160;
+  const MAX_CACHE_ENTRIES = 200;
+  const CACHE_INTERVAL_MS = 2000;
+  const frameCache = [];
+  let _lastCacheTime = 0;
+  const _cacheCanvas = document.createElement("canvas");
+  let _cacheCtx = null;
+
   function setAspect(w, h) {
     if (!(w > 0) || !(h > 0)) return;
     if (canvas.width !== w) canvas.width = w;
@@ -276,6 +285,55 @@
     for (const [id, src] of availableSources)
       if (!isTabMuted(id)) return src;
     return null;
+  }
+
+  function cacheFrame(time, srcCanvas, sw, sh) {
+    const cw = Math.min(CACHE_DIM, sw);
+    const ch = Math.round(sh * cw / sw);
+    if (!_cacheCtx || _cacheCanvas.width !== cw || _cacheCanvas.height !== ch) {
+      _cacheCanvas.width = cw;
+      _cacheCanvas.height = ch;
+      _cacheCtx = _cacheCanvas.getContext("2d", { alpha: false });
+    }
+    _cacheCtx.drawImage(srcCanvas, 0, 0, sw, sh, 0, 0, cw, ch);
+    const img = _cacheCtx.getImageData(0, 0, cw, ch);
+    frameCache.push({ time, data: img.data, width: cw, height: ch });
+    if (frameCache.length > MAX_CACHE_ENTRIES) frameCache.shift();
+  }
+
+  function getNearestCachedFrame(time) {
+    if (frameCache.length === 0) return null;
+    let lo = 0, hi = frameCache.length - 1;
+    while (lo < hi) {
+      const mid = (lo + hi) >> 1;
+      if (frameCache[mid].time < time) lo = mid + 1;
+      else hi = mid;
+    }
+    if (lo === 0) return frameCache[0];
+    const dPrev = Math.abs(frameCache[lo - 1].time - time);
+    const dCurr = Math.abs(frameCache[lo].time - time);
+    return dPrev <= dCurr ? frameCache[lo - 1] : frameCache[lo];
+  }
+
+  function drawCachedFrame(time) {
+    const cached = getNearestCachedFrame(time);
+    if (!cached) return;
+    try {
+      const img = new ImageData(new Uint8ClampedArray(cached.data), cached.width, cached.height);
+      _cacheCanvas.width = cached.width;
+      _cacheCanvas.height = cached.height;
+      _cacheCtx = _cacheCanvas.getContext("2d", { alpha: false });
+      _cacheCtx.putImageData(img, 0, 0);
+      setAspect(cached.width, cached.height);
+      canvasCtx.drawImage(_cacheCanvas, 0, 0, canvas.width, canvas.height);
+    } catch (e) {
+      err("drawCachedFrame error:", e?.name, e?.message);
+    }
+  }
+
+  function clearCache() {
+    frameCache.length = 0;
+    _lastCacheTime = 0;
   }
 
   // Sync preview with the active media controller
@@ -416,14 +474,27 @@
     getActiveBC() {
       return sourceBC;
     },
-    drawFrame({ buf, width, height }) {
+    drawFrame({ buf, width, height, time }) {
       try {
         setAspect(width, height);
         const img = new ImageData(new Uint8ClampedArray(buf), width, height);
         canvasCtx.putImageData(img, 0, 0);
+        if (time != null) {
+          const now = performance.now();
+          if (now - _lastCacheTime >= CACHE_INTERVAL_MS) {
+            _lastCacheTime = now;
+            cacheFrame(time, canvas, canvas.width, canvas.height);
+          }
+        }
       } catch (e) {
         err("drawFrame error:", e?.name, e?.message);
       }
+    },
+    drawCachedFrame(time) {
+      drawCachedFrame(time);
+    },
+    clearCache() {
+      clearCache();
     },
     setSourceTabActive(active) {
       if (sourceTabActive === active) return;
@@ -471,6 +542,7 @@
       log("showVideo", width, "x", height, "tab", browsingContext?.id);
       safe(() => canvasCtx.clearRect(0, 0, canvas.width, canvas.height));
       setAspect(width, height);
+      clearCache();
       // Stop previous source's tick to save CPU/IPC
       if (sourceBC && sourceBC.id !== browsingContext.id) {
         const prevInfo = actorRegistry.get(sourceBC.id);
