@@ -48,7 +48,11 @@ export class ZenMediaPreviewChild extends JSWindowActorChild {
     }
 
     if (event.type === "seeked") {
-      // State already set to true by seeking handler above.
+      // Reset playing to the actual video state after seek completes.
+      // This prevents wasted ticks when scrubbing a paused video.
+      if (target === this._video) {
+        this._notifyPlaying(!target.paused && !target.ended);
+      }
       return;
     }
 
