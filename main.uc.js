@@ -28,8 +28,8 @@
     const branch = Services.prefs.getDefaultBranch("mod.zenmediapreview.");
     branch.setStringPref("quality", "480");
     branch.setIntPref("framerate", 20);
-    branch.setIntPref("margin-top", 0);
-    branch.setIntPref("margin-bottom", 0);
+    branch.setIntPref("margin-top", 2);
+    branch.setIntPref("margin-bottom", 4);
     branch.setIntPref("player-hover-offset", 70);
   } catch (_) {}
 
@@ -58,7 +58,7 @@
       display: grid;
       grid-template-rows: 0fr;
       transition: grid-template-rows ${ANIM_MS}ms ease, margin ${ANIM_MS}ms ease;
-      margin: var(--zsp-mt, 0) auto;
+      margin: var(--zsp-mt, 2px) auto;
     }
     #zsp-wrap.zsp-open {
       grid-template-rows: 1fr;
@@ -66,11 +66,11 @@
       z-index: 2;
     }
     #zsp-wrap.zsp-open:not(.zsp-player-hover) {
-      margin: var(--zsp-mt, 0) auto var(--zsp-mb, 0);
+      margin: var(--zsp-mt, 2px) auto var(--zsp-mb, 4px);
       max-width: calc(100% - 12px);
     }
     #zsp-wrap.zsp-open.zsp-player-hover {
-      margin: var(--zsp-mt, 0) auto var(--zsp-ho, 70px);
+      margin: var(--zsp-mt, 2px) auto var(--zsp-ho, 70px);
       max-width: calc(100% - 12px);
     }
     #zsp-wrap[hidden] {
@@ -79,7 +79,7 @@
     /* Hide preview when sidebar is collapsed (native compact + StormAnon mod) */
     #navigator-toolbox:not(:is(:hover, [zen-expanded="true"], [zen-has-hover])) #zsp-wrap.zsp-open {
       grid-template-rows: 0fr;
-      margin: var(--zsp-mt, 0) auto 0;
+      margin: var(--zsp-mt, 2px) auto 0;
     }
     #zsp-inner {
       overflow: hidden;
@@ -129,7 +129,6 @@
   musicPlayerUI.parentNode.insertBefore(wrap, musicPlayerUI);
 
   // Apply user preferences as CSS custom properties on the wrap element.
-  // Re-applied whenever a source activates so changes take effect live.
   const MARGIN_PREFS = ["mod.zenmediapreview.margin-top", "mod.zenmediapreview.margin-bottom", "mod.zenmediapreview.player-hover-offset"];
   function getMarginPref(name, defaultVal) {
     const full = "mod.zenmediapreview." + name;
@@ -138,28 +137,14 @@
     return defaultVal;
   }
   function applyMarginPrefs() {
-    const mt = getMarginPref("margin-top", 0);
-    const mb = getMarginPref("margin-bottom", 0);
+    const mt = getMarginPref("margin-top", 2);
+    const mb = getMarginPref("margin-bottom", 4);
     const ho = getMarginPref("player-hover-offset", 70);
     wrap.style.setProperty("--zsp-mt", mt + "px");
     wrap.style.setProperty("--zsp-mb", mb + "px");
     wrap.style.setProperty("--zsp-ho", ho + "px");
   }
   applyMarginPrefs();
-  // Listen for pref changes live
-  try {
-    const observer = {
-      observe(subject, topic, data) {
-        if (topic === "nsPref:changed" && MARGIN_PREFS.includes(data)) {
-          applyMarginPrefs();
-        }
-      },
-    };
-    for (const p of MARGIN_PREFS) Services.prefs.addObserver(p, observer);
-    window.addEventListener("unload", () => {
-      for (const p of MARGIN_PREFS) Services.prefs.removeObserver(p, observer);
-    });
-  } catch (_) {}
 
   // Toggle button: both on preview panel and in media player toolbar
   // --- toolbar button ---
@@ -426,6 +411,7 @@
     _visibilityPending = true;
     requestAnimationFrame(() => {
       _visibilityPending = false;
+      applyMarginPrefs();
       const userHidden = wrap.hasAttribute("hidden");
       const shouldShow = !userHidden && isStreaming && !sourceTabActive && mediaPlayerVisible();
       const isOpen = wrap.classList.contains("zsp-open");

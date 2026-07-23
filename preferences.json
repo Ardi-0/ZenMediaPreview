@@ -28,13 +28,13 @@
     "property": "mod.zenmediapreview.margin-top",
     "label": "Top Padding (px)",
     "type": "string",
-    "defaultValue": "0"
+    "defaultValue": "2"
   },
   {
     "property": "mod.zenmediapreview.margin-bottom",
     "label": "Bottom Padding (px) — collapsed player",
     "type": "string",
-    "defaultValue": "0"
+    "defaultValue": "4"
   },
   {
     "property": "mod.zenmediapreview.player-hover-offset",
