@@ -2,6 +2,12 @@ const DEBUG = false;
 const dlog = DEBUG ? (...a) => console.log(...a) : () => {};
 
 export class ZenMediaPreviewParent extends JSWindowActorParent {
+  _initPlayStates() {
+    if (!this._playStates) {
+      this._playStates = new Map();
+    }
+  }
+
   async receiveMessage(msg) {
     if (msg.name === "ZenPiP:Debug") {
       if (DEBUG) {
@@ -53,6 +59,14 @@ export class ZenMediaPreviewParent extends JSWindowActorParent {
         break;
       }
 
+      case "ZenPiP:PlayState": {
+        this._initPlayStates();
+        const bcId = this.browsingContext.id;
+        this._playStates.set(bcId, !!msg.data?.playing);
+        dlog("[ZenMediaPreview/parent] PlayState", bcId, "=", msg.data?.playing);
+        break;
+      }
+
       case "ZenPiP:SourceVisibility": {
         const controller = win.ZenPiPController;
         if (!controller) break;
@@ -70,6 +84,8 @@ export class ZenMediaPreviewParent extends JSWindowActorParent {
           controller.unregisterSource(this.browsingContext.id);
           controller.notifySourceStopped(this.browsingContext);
         }
+        this._initPlayStates();
+        this._playStates.delete(this.browsingContext.id);
         this._stopTicking();
         try {
           this.sendAsyncMessage("ZenPiP:Stop", {});
@@ -79,6 +95,11 @@ export class ZenMediaPreviewParent extends JSWindowActorParent {
     }
   }
 
+  _isSourcePlaying(bcId) {
+    this._initPlayStates();
+    return this._playStates.get(bcId) !== false;
+  }
+
   _startTicking(win) {
     this._stopTicking();
     this._timerWindow = win;
@@ -86,8 +107,22 @@ export class ZenMediaPreviewParent extends JSWindowActorParent {
     try {
       fps = Services.prefs.getIntPref("mod.zenmediapreview.framerate", 20);
     } catch (_) {}
-    const interval = Math.max(33, Math.round(1000 / fps));
+    const baseInterval = Math.max(33, Math.round(1000 / fps));
+
     this._tickInterval = win.setInterval(() => {
+      const bcId = this.browsingContext?.id;
+      if (!bcId) return;
+
+      // If the source isn't playing, use a slower effective rate by
+      // skipping most ticks.
+      if (!this._isSourcePlaying(bcId)) {
+        this._skipCounter = (this._skipCounter || 0) + 1;
+        if (this._skipCounter < 3) {
+          return;
+        }
+        this._skipCounter = 0;
+      }
+
       try {
         let quality = "480";
         try {
@@ -97,8 +132,9 @@ export class ZenMediaPreviewParent extends JSWindowActorParent {
       } catch (e) {
         console.error("[ZenMediaPreview/parent] Tick error:", e?.name, e?.message);
       }
-    }, interval);
-    dlog("[ZenMediaPreview/parent] Ticking started at", interval, "ms interval");
+    }, baseInterval);
+
+    dlog("[ZenMediaPreview/parent] Ticking started at", baseInterval, "ms interval");
   }
 
   _stopTicking() {
@@ -109,6 +145,7 @@ export class ZenMediaPreviewParent extends JSWindowActorParent {
       } catch (_) {}
       this._tickInterval = null;
       this._timerWindow = null;
+      this._skipCounter = 0;
     }
   }
 

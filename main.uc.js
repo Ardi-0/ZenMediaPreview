@@ -470,6 +470,10 @@
         events: {
           playing: { capture: true, mozSystemGroup: true },
           pause: { capture: true, mozSystemGroup: true },
+          waiting: { capture: true, mozSystemGroup: true },
+          seeking: { capture: true, mozSystemGroup: true },
+          seeked: { capture: true, mozSystemGroup: true },
+          canplay: { capture: true, mozSystemGroup: true },
           volumechange: { capture: true, mozSystemGroup: true },
         },
       },
