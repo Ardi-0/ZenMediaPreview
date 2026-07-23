@@ -55,7 +55,7 @@
       display: grid;
       grid-template-rows: 0fr;
       transition: grid-template-rows ${ANIM_MS}ms ease, margin ${ANIM_MS}ms ease;
-      margin: var(--zsp-mt, 2px) 6px;
+      margin: var(--zsp-mt, -45px) 6px;
     }
     #zsp-wrap.zsp-open {
       grid-template-rows: 1fr;
@@ -63,10 +63,10 @@
       z-index: 2;
     }
     #zsp-wrap.zsp-open:not(.zsp-player-hover) {
-      margin: var(--zsp-mt, 2px) 6px var(--zsp-mb, 4px);
+      margin: var(--zsp-mt, -45px) 6px var(--zsp-mb, 4px);
     }
     #zsp-wrap.zsp-open.zsp-player-hover {
-      margin: var(--zsp-mt, 2px) 6px var(--zsp-ho, 70px);
+      margin: var(--zsp-mt, -45px) 6px var(--zsp-ho, 70px);
     }
     #zsp-wrap[hidden] {
       display: none !important;
@@ -74,7 +74,7 @@
     /* Hide preview when sidebar is collapsed (native compact + StormAnon mod) */
     #navigator-toolbox:not(:is(:hover, [zen-expanded="true"], [zen-has-hover])) #zsp-wrap.zsp-open {
       grid-template-rows: 0fr;
-      margin: var(--zsp-mt, 2px) 6px 0;
+      margin: var(--zsp-mt, -45px) 6px 0;
     }
     #zsp-inner {
       overflow: hidden;
@@ -133,7 +133,7 @@
     } catch (_) { return defaultVal; }
   }
   function applyMarginPrefs() {
-    const mt = getMarginPref("margin-top", 2);
+    const mt = getMarginPref("margin-top", -45);
     const mb = getMarginPref("margin-bottom", 4);
     const ho = getMarginPref("player-hover-offset", 70);
     wrap.style.setProperty("--zsp-mt", mt + "px");

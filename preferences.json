@@ -28,7 +28,7 @@
     "property": "mod.zenmediapreview.margin-top",
     "label": "Top Padding (px)",
     "type": "string",
-    "defaultValue": "2"
+    "defaultValue": "-45"
   },
   {
     "property": "mod.zenmediapreview.margin-bottom",
