@@ -28,7 +28,6 @@
     const branch = Services.prefs.getDefaultBranch("mod.zenmediapreview.");
     branch.setStringPref("quality", "480");
     branch.setIntPref("framerate", 20);
-    branch.setBoolPref("enabled", true);
   } catch (_) {}
 
   const MUSIC_PLAYER_SELECTORS =
@@ -86,35 +85,9 @@
       aspect-ratio: var(--zsp-aspect, 16 / 9);
       background: transparent;
     }
-    #zsp-toggle {
-      -moz-image-region: rect(0, 16px, 16px, 0);
-    }
-    #zsp-toggle > .toolbarbutton-icon {
-      width: 16px;
-      height: 16px;
-      mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><rect x='2' y='2' width='20' height='20' rx='2'/><path d='M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z'/>") no-repeat center / contain;
-      -webkit-mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><rect x='2' y='2' width='20' height='20' rx='2'/><path d='M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z'/>") no-repeat center / contain;
-      background-color: currentColor;
-    }
     #zen-media-controls-toolbar {
       position: relative;
       z-index: 1;
-    }
-    /* Toggle button */
-    #zsp-toggle {
-      min-width: 28px;
-      padding: 0 8px;
-    }
-    #zsp-toggle > .toolbarbutton-icon {
-      width: 16px;
-      height: 16px;
-      mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><rect x='2' y='2' width='20' height='20' rx='2'/><path d='M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z'/>") center / contain no-repeat;
-      -webkit-mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><rect x='2' y='2' width='20' height='20' rx='2'/><path d='M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z'/>") center / contain no-repeat;
-      background: currentColor;
-    }
-    #zsp-toggle[checked="true"] > .toolbarbutton-icon {
-      mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><rect x='2' y='2' width='20' height='20' rx='2'/><path d='M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z'/><line x1='1' y1='1' x2='23' y2='23' stroke='currentColor' stroke-width='2' stroke-linecap='round'/>") center / contain no-repeat;
-      -webkit-mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><rect x='2' y='2' width='20' height='20' rx='2'/><path d='M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z'/><line x1='1' y1='1' x2='23' y2='23' stroke='currentColor' stroke-width='2' stroke-linecap='round'/>") center / contain no-repeat;
     }
   `;
   document.documentElement.appendChild(styleEl);
@@ -141,35 +114,21 @@
   wrap.appendChild(inner);
   musicPlayerUI.parentNode.insertBefore(wrap, musicPlayerUI);
 
-  // Toggle button on the media player toolbar
+  // Simple toggle button
   const toggleBtn = document.createElement("toolbarbutton");
   toggleBtn.id = "zsp-toggle";
   toggleBtn.className = "toolbarbutton-1 chromeclass-toolbar-additional";
-  toggleBtn.setAttribute("type", "menu-button");
-  toggleBtn.setAttribute("tooltiptext", "Toggle Video Preview");
+  toggleBtn.setAttribute("label", "Preview");
+  toggleBtn.setAttribute("type", "checkbox");
+  toggleBtn.setAttribute("tooltiptext", "Show/Hide Video Preview");
+  toggleBtn.setAttribute("checked", "true");
   toggleBtn.addEventListener("click", () => {
-    const enabled = !Services.prefs.getBoolPref("mod.zenmediapreview.enabled");
-    Services.prefs.setBoolPref("mod.zenmediapreview.enabled", enabled);
-    toggleBtn.setAttribute("checked", enabled);
+    const checked = toggleBtn.getAttribute("checked") === "true";
+    toggleBtn.setAttribute("checked", checked ? "false" : "true");
     updateVisibility();
   });
   const toolbar = document.querySelector("#zen-media-controls-toolbar .toolbar-items") || musicPlayerUI;
-  if (toolbar.lastElementChild) {
-    toolbar.insertBefore(toggleBtn, toolbar.lastElementChild.nextSibling);
-  } else {
-    toolbar.appendChild(toggleBtn);
-  }
-  toggleBtn.setAttribute("checked", Services.prefs.getBoolPref("mod.zenmediapreview.enabled"));
-
-  // Sync pref changes to toggle button
-  try {
-    Services.prefs.addObserver("mod.zenmediapreview.enabled", () => {
-      const enabled = Services.prefs.getBoolPref("mod.zenmediapreview.enabled");
-      const toggleBtn = document.getElementById("zsp-toggle");
-      if (toggleBtn) toggleBtn.setAttribute("checked", enabled);
-      updateVisibility();
-    });
-  } catch (_) {}
+  toolbar.appendChild(toggleBtn);
 
   // Update sourceTabActive when user switches tabs
   gBrowser.tabContainer.addEventListener("TabSelect", () => {
@@ -399,7 +358,8 @@
     _visibilityPending = true;
     requestAnimationFrame(() => {
       _visibilityPending = false;
-      const enabled = Services.prefs.getBoolPref("mod.zenmediapreview.enabled");
+      const btn = document.getElementById("zsp-toggle");
+      const enabled = !btn || btn.getAttribute("checked") === "true";
       const shouldShow = enabled && isStreaming && !sourceTabActive && mediaPlayerVisible();
       const isOpen = wrap.classList.contains("zsp-open");
 
