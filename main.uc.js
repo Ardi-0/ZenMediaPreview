@@ -145,7 +145,7 @@
     if (pipBtn && pipBtn.parentNode) {
       pipBtn.parentNode.insertBefore(btn, pipBtn.nextSibling);
     } else {
-      const tb = document.querySelector("#zen-media-controls-toolbar") || musicPlayerUI;
+      const tb = document.querySelector("#zen-media-controls-toolbar toolbaritem") || document.querySelector("#zen-media-controls-toolbar") || musicPlayerUI;
       tb.appendChild(btn);
     }
   })();
