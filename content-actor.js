@@ -54,7 +54,21 @@ export class ZenMediaPreviewChild extends JSWindowActorChild {
       // Capture the frame at the new position. drawImage(video) works at
       // seeked because the seek is complete and frame is decoded.
       if (target === this._video) {
-        this._captureFrame(this._lastQuality);
+        // Use requestVideoFrameCallback to wait for the frame to actually
+        // be presented – on seeked the promise resolves but drawImage may
+        // still return the old frame.
+        if (typeof target.requestVideoFrameCallback === "function") {
+          target.requestVideoFrameCallback(() => {
+            this._captureFrame(this._lastQuality);
+          });
+        } else {
+          this._captureFrame(this._lastQuality);
+          if (typeof this.contentWindow?.requestAnimationFrame === "function") {
+            this.contentWindow.requestAnimationFrame(() => {
+              this._captureFrame(this._lastQuality);
+            });
+          }
+        }
         this._notifyPlaying(!target.paused && !target.ended);
       }
       return;
