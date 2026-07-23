@@ -127,32 +127,45 @@
   musicPlayerUI.parentNode.insertBefore(wrap, musicPlayerUI);
 
   // Apply user preferences as CSS custom properties on the wrap element.
+  // The baseline gap (from Zen's sidebar layout) is measured once the
+  // preview becomes visible, so the user's pref value always corresponds
+  // to the visible pixel gap.
   const MARGIN_PREFS = ["mod.zenmediapreview.margin-top", "mod.zenmediapreview.margin-bottom", "mod.zenmediapreview.player-hover-offset"];
+  let _baseTop = 0, _baseBottom = 0, _baseMeasured = false;
+  function measureBaseline() {
+    if (_baseMeasured) return;
+    try {
+      const wrapRect = wrap.getBoundingClientRect();
+      if (wrapRect.width === 0 || wrapRect.height === 0) return;
+      const prev = wrap.previousElementSibling;
+      if (prev) {
+        const prevRect = prev.getBoundingClientRect();
+        _baseTop = Math.max(0, prevRect.bottom - wrapRect.top + 2);
+      }
+      _baseBottom = Math.max(0, musicPlayerUI.getBoundingClientRect().top - wrapRect.bottom + 4);
+      _baseMeasured = true;
+    } catch (_) {}
+  }
   function getMarginPref(name, defaultVal) {
     try {
       return parseInt(Services.prefs.getStringPref("mod.zenmediapreview." + name, String(defaultVal)), 10) || defaultVal;
     } catch (_) { return defaultVal; }
   }
   function applyMarginPrefs() {
+    measureBaseline();
+    const useB = _baseMeasured;
     const mt = getMarginPref("margin-top", 2);
     const mb = getMarginPref("margin-bottom", 4);
     const ho = getMarginPref("player-hover-offset", 70);
-    wrap.style.setProperty("--zsp-mt", mt + "px");
-    wrap.style.setProperty("--zsp-mb", mb + "px");
-    wrap.style.setProperty("--zsp-ho", (mb + ho) + "px");
-    // Neutralize the media player's own top margin so the gap is
-    // controlled entirely by the wrap's margin-bottom.
+    wrap.style.setProperty("--zsp-mt", (mt - (useB ? _baseTop : 0)) + "px");
+    wrap.style.setProperty("--zsp-mb", (mb - (useB ? _baseBottom : 0)) + "px");
+    wrap.style.setProperty("--zsp-ho", (mb + ho - (useB ? _baseBottom : 0)) + "px");
     musicPlayerUI.style.marginTop = "0";
-    // Remove parent flex gap and previous sibling's bottom margin
-    // so the wrap's margin-top is the sole controller of top spacing.
-    try { musicPlayerUI.parentNode.style.gap = "0"; } catch (_) {}
-    try { musicPlayerUI.parentNode.style.paddingTop = "0"; } catch (_) {}
-    try { musicPlayerUI.parentNode.style.paddingBottom = "0"; } catch (_) {}
-    try { if (wrap.previousElementSibling) wrap.previousElementSibling.style.marginBottom = "0"; } catch (_) {}
   }
   applyMarginPrefs();
-  // Poll prefs every 2s so changes from Sine settings take effect live
-  try { setInterval(applyMarginPrefs, 2000); } catch (_) {}
+  // Poll prefs every 2s so changes from Sine settings take effect live.
+  // Also re-measures baseline on first visible frame.
+  try { setInterval(() => { measureBaseline(); applyMarginPrefs(); }, 2000); } catch (_) {}
 
   // Toggle button: both on preview panel and in media player toolbar
   // --- toolbar button ---
@@ -419,6 +432,7 @@
     _visibilityPending = true;
     requestAnimationFrame(() => {
       _visibilityPending = false;
+      measureBaseline();
       applyMarginPrefs();
       const userHidden = wrap.hasAttribute("hidden");
       const shouldShow = !userHidden && isStreaming && !sourceTabActive && mediaPlayerVisible();
