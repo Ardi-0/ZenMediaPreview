@@ -28,9 +28,9 @@
     const branch = Services.prefs.getDefaultBranch("mod.zenmediapreview.");
     branch.setStringPref("quality", "480");
     branch.setIntPref("framerate", 20);
-    branch.setStringPref("margin-top", "0");
-    branch.setStringPref("margin-bottom", "0");
-    branch.setStringPref("player-hover-offset", "0");
+    branch.setStringPref("margin-top", "2");
+    branch.setStringPref("margin-bottom", "4");
+    branch.setStringPref("player-hover-offset", "70");
   } catch (_) {}
 
   const MUSIC_PLAYER_SELECTORS =
@@ -58,7 +58,7 @@
       display: grid;
       grid-template-rows: 0fr;
       transition: grid-template-rows ${ANIM_MS}ms ease, margin ${ANIM_MS}ms ease;
-      margin: calc(2px + var(--zsp-mt, 0px)) 6px;
+      margin: var(--zsp-mt, 2px) 6px;
     }
     #zsp-wrap.zsp-open {
       grid-template-rows: 1fr;
@@ -66,10 +66,10 @@
       z-index: 2;
     }
     #zsp-wrap.zsp-open:not(.zsp-player-hover) {
-      margin: calc(2px + var(--zsp-mt, 0px)) 6px calc(4px + var(--zsp-mb, 0px));
+      margin: var(--zsp-mt, 2px) 6px var(--zsp-mb, 4px);
     }
     #zsp-wrap.zsp-open.zsp-player-hover {
-      margin: calc(2px + var(--zsp-mt, 0px)) 6px calc(70px + var(--zsp-ho, 0px));
+      margin: var(--zsp-mt, 2px) 6px var(--zsp-ho, 70px);
     }
     #zsp-wrap[hidden] {
       display: none !important;
@@ -77,7 +77,7 @@
     /* Hide preview when sidebar is collapsed (native compact + StormAnon mod) */
     #navigator-toolbox:not(:is(:hover, [zen-expanded="true"], [zen-has-hover])) #zsp-wrap.zsp-open {
       grid-template-rows: 0fr;
-      margin: calc(2px + var(--zsp-mt, 0px)) 6px 0;
+      margin: var(--zsp-mt, 2px) 6px 0;
     }
     #zsp-inner {
       overflow: hidden;
@@ -126,9 +126,8 @@
   wrap.appendChild(inner);
   musicPlayerUI.parentNode.insertBefore(wrap, musicPlayerUI);
 
-  // Apply user preferences as additive CSS custom properties.
-  // The hardcoded base values are in the CSS (2px top, 4px bottom,
-  // 70px hover); the pref value adds on top (or subtracts if negative).
+  // Apply user preferences directly as CSS custom properties.
+  // The CSS fallback IS the default. Pref value replaces it.
   const MARGIN_PREFS = ["mod.zenmediapreview.margin-top", "mod.zenmediapreview.margin-bottom", "mod.zenmediapreview.player-hover-offset"];
   function getMarginPref(name, defaultVal) {
     try {
@@ -136,12 +135,13 @@
     } catch (_) { return defaultVal; }
   }
   function applyMarginPrefs() {
-    const mt = getMarginPref("margin-top", 0);
-    const mb = getMarginPref("margin-bottom", 0);
-    const ho = getMarginPref("player-hover-offset", 0);
+    const mt = getMarginPref("margin-top", 2);
+    const mb = getMarginPref("margin-bottom", 4);
+    const ho = getMarginPref("player-hover-offset", 70);
     wrap.style.setProperty("--zsp-mt", mt + "px");
     wrap.style.setProperty("--zsp-mb", mb + "px");
     wrap.style.setProperty("--zsp-ho", ho + "px");
+    musicPlayerUI.style.marginTop = "0";
   }
   applyMarginPrefs();
   try { setInterval(applyMarginPrefs, 2000); } catch (_) {}
