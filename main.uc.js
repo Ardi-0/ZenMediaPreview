@@ -106,8 +106,9 @@
     #zsp-canvas {
       display: block;
       width: 100%;
-      height: 100%;
-      object-fit: contain;
+      aspect-ratio: var(--zsp-aspect, 16 / 9);
+      max-height: 100%;
+      margin: auto 0;
       background: transparent;
     }
     #zen-media-controls-toolbar, .zen-sidebar-bottom-buttons {
