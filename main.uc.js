@@ -105,6 +105,7 @@
     #zsp-canvas {
       display: block;
       width: 100%;
+      min-width: 0;
       aspect-ratio: var(--zsp-aspect, 16 / 9);
       background: transparent;
     }
@@ -273,11 +274,14 @@
   let _aspectW = 16, _aspectH = 9;
   function setAspect(w, h) {
     if (!(w > 0) || !(h > 0)) return;
-    if (canvas.width !== w) canvas.width = w;
-    if (canvas.height !== h) canvas.height = h;
+    canvas.width = w;
+    canvas.height = h;
     _aspectW = w;
     _aspectH = h;
     wrap.style.setProperty("--zsp-aspect", `${w} / ${h}`);
+    // Reset intrinsic size so CSS width:100% + aspect-ratio controls display
+    canvas.style.width = "100%";
+    canvas.style.height = "auto";
   }
 
   function mediaPlayerVisible() {
