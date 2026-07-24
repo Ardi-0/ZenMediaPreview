@@ -75,10 +75,9 @@
       transition: grid-template-rows ${ANIM_MS}ms ease, margin ${ANIM_MS}ms ease;
       margin: calc(-45px + var(--zsp-mt, 0px)) 6px;
       min-width: 0;
-      width: calc(100% - 12px);
     }
     #zsp-wrap.zsp-open {
-      grid-template-rows: auto;
+      grid-template-rows: 1fr;
       position: relative;
       z-index: 2;
     }
@@ -100,15 +99,14 @@
       overflow: hidden;
       min-height: 0;
       min-width: 0;
-      width: 100%;
-      aspect-ratio: var(--zsp-aspect, 16 / 9);
       border-radius: var(--zen-border-radius, 8px);
       background: var(--lwt-accent-color-inactive, var(--toolbar-bgcolor, #1c1c1c));
     }
     #zsp-canvas {
       display: block;
       width: 100%;
-      height: 100%;
+      min-width: 0;
+      aspect-ratio: var(--zsp-aspect, 16 / 9);
       background: transparent;
     }
     #zen-media-controls-toolbar, .zen-sidebar-bottom-buttons {
