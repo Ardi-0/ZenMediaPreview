@@ -103,7 +103,7 @@
     }
     #zsp-canvas {
       display: block;
-      width: 100%;
+      width: min(var(--zsp-render-width, 100%), 100%);
       aspect-ratio: var(--zsp-aspect, 16 / 9);
       background: transparent;
     }
@@ -169,6 +169,7 @@
       _renderWidth = parseInt(Services.prefs.getStringPref("mod.zenmediapreview.render-width", "320"), 10);
       if (isNaN(_renderWidth) || _renderWidth < 0) _renderWidth = 0;
     } catch (_) { _renderWidth = 0; }
+    wrap.style.setProperty("--zsp-render-width", _renderWidth > 0 ? _renderWidth + "px" : "100%");
   }
   applyRenderWidthPref();
   try { setInterval(applyRenderWidthPref, 2000); } catch (_) {}
