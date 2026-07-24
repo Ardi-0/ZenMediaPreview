@@ -105,6 +105,7 @@
     #zsp-canvas {
       display: block;
       width: 100%;
+      aspect-ratio: var(--zsp-aspect, 16 / 9);
       background: transparent;
     }
     #zen-media-controls-toolbar, .zen-sidebar-bottom-buttons {
@@ -276,13 +277,8 @@
     if (canvas.height !== h) canvas.height = h;
     _aspectW = w;
     _aspectH = h;
-    updateCanvasHeight();
+    wrap.style.setProperty("--zsp-aspect", `${w} / ${h}`);
   }
-  function updateCanvasHeight() {
-    const cw = canvas.clientWidth;
-    if (cw > 0) canvas.style.height = (cw * _aspectH / _aspectW) + "px";
-  }
-  new ResizeObserver(updateCanvasHeight).observe(canvas);
 
   function mediaPlayerVisible() {
     try {
