@@ -77,7 +77,7 @@
       min-width: 0;
     }
     #zsp-wrap.zsp-open {
-      grid-template-rows: 1fr;
+      grid-template-rows: auto;
       position: relative;
       z-index: 2;
     }
