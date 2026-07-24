@@ -107,8 +107,6 @@
       display: block;
       width: 100%;
       aspect-ratio: var(--zsp-aspect, 16 / 9);
-      max-height: 100%;
-      margin: auto 0;
       background: transparent;
     }
     #zen-media-controls-toolbar, .zen-sidebar-bottom-buttons {
