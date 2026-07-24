@@ -105,8 +105,6 @@
     #zsp-canvas {
       display: block;
       width: 100%;
-      aspect-ratio: var(--zsp-aspect, 16 / 9);
-      min-width: 0;
       background: transparent;
     }
     #zen-media-controls-toolbar, .zen-sidebar-bottom-buttons {
@@ -271,12 +269,20 @@
   const actorRegistry = new Map();
   const sourceMeta = new Map();
 
+  let _aspectW = 16, _aspectH = 9;
   function setAspect(w, h) {
     if (!(w > 0) || !(h > 0)) return;
     if (canvas.width !== w) canvas.width = w;
     if (canvas.height !== h) canvas.height = h;
-    wrap.style.setProperty("--zsp-aspect", `${w} / ${h}`);
+    _aspectW = w;
+    _aspectH = h;
+    updateCanvasHeight();
   }
+  function updateCanvasHeight() {
+    const cw = canvas.clientWidth;
+    if (cw > 0) canvas.style.height = (cw * _aspectH / _aspectW) + "px";
+  }
+  new ResizeObserver(updateCanvasHeight).observe(canvas);
 
   function mediaPlayerVisible() {
     try {
