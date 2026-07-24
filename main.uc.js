@@ -108,7 +108,6 @@
       display: block;
       width: 100%;
       height: 100%;
-      object-fit: contain;
       background: transparent;
     }
     #zen-media-controls-toolbar, .zen-sidebar-bottom-buttons {
@@ -276,14 +275,9 @@
   let _aspectW = 16, _aspectH = 9;
   function setAspect(w, h) {
     if (!(w > 0) || !(h > 0)) return;
-    canvas.width = w;
-    canvas.height = h;
     _aspectW = w;
     _aspectH = h;
     wrap.style.setProperty("--zsp-aspect", `${w} / ${h}`);
-    // Force CSS display size — overrides intrinsic size from HTML attributes
-    canvas.style.setProperty("width", "100%", "important");
-    canvas.style.setProperty("height", "100%", "important");
   }
 
   function mediaPlayerVisible() {
@@ -479,6 +473,8 @@
     drawFrame({ buf, width, height }) {
       try {
         setAspect(width, height);
+        canvas.width = width;
+        canvas.height = height;
         const img = new ImageData(new Uint8ClampedArray(buf), width, height);
         canvasCtx.putImageData(img, 0, 0);
       } catch (e) {
