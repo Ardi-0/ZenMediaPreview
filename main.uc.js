@@ -99,14 +99,14 @@
       overflow: hidden;
       min-height: 0;
       min-width: 0;
+      aspect-ratio: var(--zsp-aspect, 16 / 9);
       border-radius: var(--zen-border-radius, 8px);
       background: var(--lwt-accent-color-inactive, var(--toolbar-bgcolor, #1c1c1c));
     }
     #zsp-canvas {
       display: block;
       width: 100%;
-      min-width: 0;
-      aspect-ratio: var(--zsp-aspect, 16 / 9);
+      height: 100%;
       background: transparent;
     }
     #zen-media-controls-toolbar, .zen-sidebar-bottom-buttons {
@@ -279,9 +279,6 @@
     _aspectW = w;
     _aspectH = h;
     wrap.style.setProperty("--zsp-aspect", `${w} / ${h}`);
-    // Reset intrinsic size so CSS width:100% + aspect-ratio controls display
-    canvas.style.width = "100%";
-    canvas.style.height = "auto";
   }
 
   function mediaPlayerVisible() {
