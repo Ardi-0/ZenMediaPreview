@@ -281,6 +281,9 @@
     _aspectW = w;
     _aspectH = h;
     wrap.style.setProperty("--zsp-aspect", `${w} / ${h}`);
+    // Force CSS display size — overrides intrinsic size from HTML attributes
+    canvas.style.setProperty("width", "100%", "important");
+    canvas.style.setProperty("height", "100%", "important");
   }
 
   function mediaPlayerVisible() {
