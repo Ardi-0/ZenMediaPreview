@@ -99,6 +99,7 @@
       overflow: hidden;
       min-height: 0;
       min-width: 0;
+      width: 100%;
       aspect-ratio: var(--zsp-aspect, 16 / 9);
       border-radius: var(--zen-border-radius, 8px);
       background: var(--lwt-accent-color-inactive, var(--toolbar-bgcolor, #1c1c1c));
@@ -107,6 +108,7 @@
       display: block;
       width: 100%;
       height: 100%;
+      object-fit: contain;
       background: transparent;
     }
     #zen-media-controls-toolbar, .zen-sidebar-bottom-buttons {
