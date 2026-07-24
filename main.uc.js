@@ -74,8 +74,6 @@
       grid-template-rows: 0fr;
       transition: grid-template-rows ${ANIM_MS}ms ease, margin ${ANIM_MS}ms ease;
       margin: calc(-45px + var(--zsp-mt, 0px)) 6px;
-      min-width: 0;
-      width: 100%;
     }
     #zsp-wrap.zsp-open {
       grid-template-rows: 1fr;
@@ -99,18 +97,16 @@
     #zsp-inner {
       overflow: hidden;
       min-height: 0;
-      min-width: 0;
       border-radius: var(--zen-border-radius, 8px);
       background: var(--lwt-accent-color-inactive, var(--toolbar-bgcolor, #1c1c1c));
     }
     #zsp-canvas {
       display: block;
       width: 100%;
-      min-width: 0;
       aspect-ratio: var(--zsp-aspect, 16 / 9);
       background: transparent;
     }
-    #zen-media-controls-toolbar, .zen-sidebar-bottom-buttons {
+    #zen-media-controls-toolbar {
       position: relative;
       z-index: 1;
     }
@@ -272,34 +268,11 @@
   const actorRegistry = new Map();
   const sourceMeta = new Map();
 
-  let _aspectW = 16, _aspectH = 9, _offCanvas = null, _offCtx = null;
-  let _dpr = window.devicePixelRatio || 1;
-  function resizeCanvasToDisplaySize() {
-    const rect = canvas.getBoundingClientRect();
-    const w = Math.max(1, Math.round(rect.width * _dpr));
-    const h = Math.max(1, Math.round(rect.height * _dpr));
-    if (canvas.width !== w || canvas.height !== h) {
-      canvas.width = w;
-      canvas.height = h;
-    }
-  }
-  const canvasResizeObserver = new ResizeObserver(() => resizeCanvasToDisplaySize());
-  canvasResizeObserver.observe(canvas);
-  window.addEventListener("resize", () => {
-    const newDpr = window.devicePixelRatio || 1;
-    if (newDpr !== _dpr) {
-      _dpr = newDpr;
-      resizeCanvasToDisplaySize();
-    }
-  });
-  resizeCanvasToDisplaySize();
-
   function setAspect(w, h) {
     if (!(w > 0) || !(h > 0)) return;
-    _aspectW = w;
-    _aspectH = h;
+    if (canvas.width !== w) canvas.width = w;
+    if (canvas.height !== h) canvas.height = h;
     wrap.style.setProperty("--zsp-aspect", `${w} / ${h}`);
-    requestAnimationFrame(() => resizeCanvasToDisplaySize());
   }
 
   function mediaPlayerVisible() {
@@ -379,7 +352,7 @@
               sourceBC = null;
               isStreaming = false;
               updateVisibility();
-              safe(() => canvasCtx.clearRect(0, 0, canvas.clientWidth, canvas.clientHeight));
+              safe(() => canvasCtx.clearRect(0, 0, canvas.width, canvas.height));
             }
             return;
           }
@@ -391,7 +364,7 @@
             sourceBC = null;
             isStreaming = false;
             updateVisibility();
-            safe(() => canvasCtx.clearRect(0, 0, canvas.clientWidth, canvas.clientHeight));
+            safe(() => canvasCtx.clearRect(0, 0, canvas.width, canvas.height));
           }
         } catch (_) {}
       }
@@ -428,7 +401,7 @@
             window.ZenPiPController._activateSource(alt.width, alt.height, alt.bc);
           } else {
             updateVisibility();
-            safe(() => canvasCtx.clearRect(0, 0, canvas.clientWidth, canvas.clientHeight));
+            safe(() => canvasCtx.clearRect(0, 0, canvas.width, canvas.height));
           }
         }
       } else {
@@ -495,16 +468,8 @@
     drawFrame({ buf, width, height }) {
       try {
         setAspect(width, height);
-        resizeCanvasToDisplaySize();
-        if (!_offCanvas || _offCanvas.width !== width || _offCanvas.height !== height) {
-          _offCanvas = document.createElement("canvas");
-          _offCanvas.width = width;
-          _offCanvas.height = height;
-          _offCtx = _offCanvas.getContext("2d", { alpha: false });
-        }
         const img = new ImageData(new Uint8ClampedArray(buf), width, height);
-        _offCtx.putImageData(img, 0, 0);
-        canvasCtx.drawImage(_offCanvas, 0, 0, canvas.clientWidth, canvas.clientHeight);
+        canvasCtx.putImageData(img, 0, 0);
       } catch (e) {
         err("drawFrame error:", e?.name, e?.message);
       }
@@ -547,13 +512,13 @@
           window.ZenPiPController._activateSource(alt.width, alt.height, alt.bc);
         } else {
           updateVisibility();
-          safe(() => canvasCtx.clearRect(0, 0, canvas.clientWidth, canvas.clientHeight));
+          safe(() => canvasCtx.clearRect(0, 0, canvas.width, canvas.height));
         }
       }
     },
     _activateSource(width, height, browsingContext) {
       log("showVideo", width, "x", height, "tab", browsingContext?.id);
-      safe(() => canvasCtx.clearRect(0, 0, canvas.clientWidth, canvas.clientHeight));
+      safe(() => canvasCtx.clearRect(0, 0, canvas.width, canvas.height));
       setAspect(width, height);
       // Stop previous source's tick to save CPU/IPC
       if (sourceBC && sourceBC.id !== browsingContext.id) {
@@ -582,7 +547,7 @@
       isStreaming = false;
       sourceBC = null;
       updateVisibility();
-      safe(() => canvasCtx.clearRect(0, 0, canvas.clientWidth, canvas.clientHeight));
+      safe(() => canvasCtx.clearRect(0, 0, canvas.width, canvas.height));
     },
   };
 
