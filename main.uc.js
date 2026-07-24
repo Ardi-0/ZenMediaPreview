@@ -75,6 +75,7 @@
       transition: grid-template-rows ${ANIM_MS}ms ease, margin ${ANIM_MS}ms ease;
       margin: calc(-45px + var(--zsp-mt, 0px)) 6px;
       min-width: 0;
+      width: 100%;
     }
     #zsp-wrap.zsp-open {
       grid-template-rows: 1fr;
