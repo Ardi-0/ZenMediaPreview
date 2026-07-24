@@ -164,6 +164,8 @@
   try { setInterval(applyMarginPrefs, 2000); } catch (_) {}
 
   let _renderWidth = 0;
+  let _offCanvas = null;
+  let _offCtx = null;
   function applyRenderWidthPref() {
     try {
       _renderWidth = parseInt(Services.prefs.getStringPref("mod.zenmediapreview.render-width", "320"), 10);
@@ -485,8 +487,15 @@
     drawFrame({ buf, width, height }) {
       try {
         setAspect(width, height);
+        if (!_offCanvas || _offCanvas.width !== width || _offCanvas.height !== height) {
+          _offCanvas = document.createElement("canvas");
+          _offCanvas.width = width;
+          _offCanvas.height = height;
+          _offCtx = _offCanvas.getContext("2d", { alpha: false });
+        }
         const img = new ImageData(new Uint8ClampedArray(buf), width, height);
-        canvasCtx.putImageData(img, 0, 0);
+        _offCtx.putImageData(img, 0, 0);
+        canvasCtx.drawImage(_offCanvas, 0, 0, canvas.width, canvas.height);
       } catch (e) {
         err("drawFrame error:", e?.name, e?.message);
       }
