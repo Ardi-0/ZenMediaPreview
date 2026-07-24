@@ -272,7 +272,7 @@
   const actorRegistry = new Map();
   const sourceMeta = new Map();
 
-  let _aspectW = 16, _aspectH = 9;
+  let _aspectW = 16, _aspectH = 9, _offCanvas = null, _offCtx = null;
   function setAspect(w, h) {
     if (!(w > 0) || !(h > 0)) return;
     _aspectW = w;
@@ -357,7 +357,7 @@
               sourceBC = null;
               isStreaming = false;
               updateVisibility();
-              safe(() => canvasCtx.clearRect(0, 0, canvas.width, canvas.height));
+              safe(() => canvasCtx.clearRect(0, 0, canvas.clientWidth, canvas.clientHeight));
             }
             return;
           }
@@ -369,7 +369,7 @@
             sourceBC = null;
             isStreaming = false;
             updateVisibility();
-            safe(() => canvasCtx.clearRect(0, 0, canvas.width, canvas.height));
+            safe(() => canvasCtx.clearRect(0, 0, canvas.clientWidth, canvas.clientHeight));
           }
         } catch (_) {}
       }
@@ -406,7 +406,7 @@
             window.ZenPiPController._activateSource(alt.width, alt.height, alt.bc);
           } else {
             updateVisibility();
-            safe(() => canvasCtx.clearRect(0, 0, canvas.width, canvas.height));
+            safe(() => canvasCtx.clearRect(0, 0, canvas.clientWidth, canvas.clientHeight));
           }
         }
       } else {
@@ -473,10 +473,15 @@
     drawFrame({ buf, width, height }) {
       try {
         setAspect(width, height);
-        canvas.width = width;
-        canvas.height = height;
+        if (!_offCanvas || _offCanvas.width !== width || _offCanvas.height !== height) {
+          _offCanvas = document.createElement("canvas");
+          _offCanvas.width = width;
+          _offCanvas.height = height;
+          _offCtx = _offCanvas.getContext("2d", { alpha: false });
+        }
         const img = new ImageData(new Uint8ClampedArray(buf), width, height);
-        canvasCtx.putImageData(img, 0, 0);
+        _offCtx.putImageData(img, 0, 0);
+        canvasCtx.drawImage(_offCanvas, 0, 0, canvas.clientWidth, canvas.clientHeight);
       } catch (e) {
         err("drawFrame error:", e?.name, e?.message);
       }
@@ -519,13 +524,13 @@
           window.ZenPiPController._activateSource(alt.width, alt.height, alt.bc);
         } else {
           updateVisibility();
-          safe(() => canvasCtx.clearRect(0, 0, canvas.width, canvas.height));
+          safe(() => canvasCtx.clearRect(0, 0, canvas.clientWidth, canvas.clientHeight));
         }
       }
     },
     _activateSource(width, height, browsingContext) {
       log("showVideo", width, "x", height, "tab", browsingContext?.id);
-      safe(() => canvasCtx.clearRect(0, 0, canvas.width, canvas.height));
+      safe(() => canvasCtx.clearRect(0, 0, canvas.clientWidth, canvas.clientHeight));
       setAspect(width, height);
       // Stop previous source's tick to save CPU/IPC
       if (sourceBC && sourceBC.id !== browsingContext.id) {
@@ -554,7 +559,7 @@
       isStreaming = false;
       sourceBC = null;
       updateVisibility();
-      safe(() => canvasCtx.clearRect(0, 0, canvas.width, canvas.height));
+      safe(() => canvasCtx.clearRect(0, 0, canvas.clientWidth, canvas.clientHeight));
     },
   };
 
