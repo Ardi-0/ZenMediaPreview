@@ -43,6 +43,12 @@
     "defaultValue": "0"
   },
   {
+    "property": "mod.zenmediapreview.render-width",
+    "label": "Render Width (px) — 0 = full video resolution",
+    "type": "string",
+    "defaultValue": "320"
+  },
+  {
     "property": "mod.zenmediapreview.hide-on-collapse",
     "label": "Hide preview when sidebar is collapsed",
     "type": "checkbox",

@@ -28,6 +28,7 @@
     const branch = Services.prefs.getDefaultBranch("mod.zenmediapreview.");
     branch.setStringPref("quality", "480");
     branch.setIntPref("framerate", 20);
+    branch.setStringPref("render-width", "320");
     branch.setBoolPref("hide-on-collapse", true);
   } catch (_) {}
 
@@ -162,6 +163,16 @@
   applyMarginPrefs();
   try { setInterval(applyMarginPrefs, 2000); } catch (_) {}
 
+  let _renderWidth = 0;
+  function applyRenderWidthPref() {
+    try {
+      _renderWidth = parseInt(Services.prefs.getStringPref("mod.zenmediapreview.render-width", "320"), 10);
+      if (isNaN(_renderWidth) || _renderWidth < 0) _renderWidth = 0;
+    } catch (_) { _renderWidth = 0; }
+  }
+  applyRenderWidthPref();
+  try { setInterval(applyRenderWidthPref, 2000); } catch (_) {}
+
   // Toggle button: both on preview panel and in media player toolbar
   // --- toolbar button ---
   (function addToolbarBtn() {
@@ -270,8 +281,13 @@
 
   function setAspect(w, h) {
     if (!(w > 0) || !(h > 0)) return;
-    if (canvas.width !== w) canvas.width = w;
-    if (canvas.height !== h) canvas.height = h;
+    let cw = w, ch = h;
+    if (_renderWidth > 0) {
+      cw = _renderWidth;
+      ch = Math.max(1, Math.round(_renderWidth * (h / w)));
+    }
+    if (canvas.width !== cw) canvas.width = cw;
+    if (canvas.height !== ch) canvas.height = ch;
     wrap.style.setProperty("--zsp-aspect", `${w} / ${h}`);
   }
 
