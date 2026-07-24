@@ -268,11 +268,33 @@
   const actorRegistry = new Map();
   const sourceMeta = new Map();
 
+  let _dpr = window.devicePixelRatio || 1;
+  let _offCanvas = null;
+  let _offCtx = null;
+  function resizeCanvasToDisplaySize() {
+    const rect = canvas.getBoundingClientRect();
+    const w = Math.max(1, Math.round(rect.width * _dpr));
+    const h = Math.max(1, Math.round(rect.height * _dpr));
+    if (canvas.width !== w || canvas.height !== h) {
+      canvas.width = w;
+      canvas.height = h;
+    }
+  }
+  const canvasResizeObserver = new ResizeObserver(() => resizeCanvasToDisplaySize());
+  canvasResizeObserver.observe(canvas);
+  window.addEventListener("resize", () => {
+    const newDpr = window.devicePixelRatio || 1;
+    if (newDpr !== _dpr) {
+      _dpr = newDpr;
+      resizeCanvasToDisplaySize();
+    }
+  });
+  resizeCanvasToDisplaySize();
+
   function setAspect(w, h) {
     if (!(w > 0) || !(h > 0)) return;
-    if (canvas.width !== w) canvas.width = w;
-    if (canvas.height !== h) canvas.height = h;
     wrap.style.setProperty("--zsp-aspect", `${w} / ${h}`);
+    requestAnimationFrame(() => resizeCanvasToDisplaySize());
   }
 
   function mediaPlayerVisible() {
@@ -468,8 +490,16 @@
     drawFrame({ buf, width, height }) {
       try {
         setAspect(width, height);
+        resizeCanvasToDisplaySize();
+        if (!_offCanvas || _offCanvas.width !== width || _offCanvas.height !== height) {
+          _offCanvas = document.createElement("canvas");
+          _offCanvas.width = width;
+          _offCanvas.height = height;
+          _offCtx = _offCanvas.getContext("2d", { alpha: false });
+        }
         const img = new ImageData(new Uint8ClampedArray(buf), width, height);
-        canvasCtx.putImageData(img, 0, 0);
+        _offCtx.putImageData(img, 0, 0);
+        canvasCtx.drawImage(_offCanvas, 0, 0, canvas.width, canvas.height);
       } catch (e) {
         err("drawFrame error:", e?.name, e?.message);
       }
