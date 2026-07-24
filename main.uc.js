@@ -273,11 +273,33 @@
   const sourceMeta = new Map();
 
   let _aspectW = 16, _aspectH = 9, _offCanvas = null, _offCtx = null;
+  let _dpr = window.devicePixelRatio || 1;
+  function resizeCanvasToDisplaySize() {
+    const rect = canvas.getBoundingClientRect();
+    const w = Math.max(1, Math.round(rect.width * _dpr));
+    const h = Math.max(1, Math.round(rect.height * _dpr));
+    if (canvas.width !== w || canvas.height !== h) {
+      canvas.width = w;
+      canvas.height = h;
+    }
+  }
+  const canvasResizeObserver = new ResizeObserver(() => resizeCanvasToDisplaySize());
+  canvasResizeObserver.observe(canvas);
+  window.addEventListener("resize", () => {
+    const newDpr = window.devicePixelRatio || 1;
+    if (newDpr !== _dpr) {
+      _dpr = newDpr;
+      resizeCanvasToDisplaySize();
+    }
+  });
+  resizeCanvasToDisplaySize();
+
   function setAspect(w, h) {
     if (!(w > 0) || !(h > 0)) return;
     _aspectW = w;
     _aspectH = h;
     wrap.style.setProperty("--zsp-aspect", `${w} / ${h}`);
+    requestAnimationFrame(() => resizeCanvasToDisplaySize());
   }
 
   function mediaPlayerVisible() {
@@ -473,6 +495,7 @@
     drawFrame({ buf, width, height }) {
       try {
         setAspect(width, height);
+        resizeCanvasToDisplaySize();
         if (!_offCanvas || _offCanvas.width !== width || _offCanvas.height !== height) {
           _offCanvas = document.createElement("canvas");
           _offCanvas.width = width;
