@@ -77,8 +77,6 @@
     }
     #zsp-wrap.zsp-open {
       grid-template-rows: 1fr;
-      flex: 1;
-      min-height: 0;
       position: relative;
       z-index: 2;
     }
@@ -99,7 +97,6 @@
     #zsp-inner {
       overflow: hidden;
       min-height: 0;
-      height: 100%;
       border-radius: var(--zen-border-radius, 8px);
       background: var(--lwt-accent-color-inactive, var(--toolbar-bgcolor, #1c1c1c));
     }
@@ -112,7 +109,6 @@
     #zen-media-controls-toolbar, .zen-sidebar-bottom-buttons {
       position: relative;
       z-index: 1;
-      flex-shrink: 0;
     }
     #zsp-toggle {
       list-style-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23fff' stroke-width='2' stroke-linecap='round'><rect x='2' y='2' width='20' height='20' rx='2.18'/><path d='M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z'/></svg>");
@@ -144,13 +140,6 @@
   inner.appendChild(canvas);
   wrap.appendChild(inner);
   musicPlayerUI.parentNode.insertBefore(wrap, musicPlayerUI);
-
-  // Make sidebar bottom area a flex column so the preview fills remaining
-  // space without expanding the sidebar.
-  const sidebarParent = musicPlayerUI.parentNode;
-  sidebarParent.style.display = "flex";
-  sidebarParent.style.flexDirection = "column";
-  sidebarParent.style.minHeight = "0";
 
   // Apply user preferences directly as CSS custom properties.
   // The CSS fallback IS the default. Pref value replaces it.
