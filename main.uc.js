@@ -28,6 +28,24 @@
     const branch = Services.prefs.getDefaultBranch("mod.zenmediapreview.");
     branch.setStringPref("quality", "480");
     branch.setIntPref("framerate", 20);
+    branch.setBoolPref("hide-on-collapse", true);
+  } catch (_) {}
+
+  // Toggle zsp-hide-on-collapse class based on pref
+  function applyCollapsePref() {
+    try {
+      if (Services.prefs.getBoolPref("mod.zenmediapreview.hide-on-collapse", true)) {
+        document.documentElement.classList.add("zsp-hide-on-collapse");
+      } else {
+        document.documentElement.classList.remove("zsp-hide-on-collapse");
+      }
+    } catch (_) {
+      document.documentElement.classList.add("zsp-hide-on-collapse");
+    }
+  }
+  applyCollapsePref();
+  try {
+    Services.prefs.addObserver("mod.zenmediapreview.hide-on-collapse", () => applyCollapsePref());
   } catch (_) {}
 
   const MUSIC_PLAYER_SELECTORS =
@@ -71,8 +89,8 @@
     #zsp-wrap[hidden] {
       display: none !important;
     }
-    /* Hide preview when sidebar is collapsed (native compact + StormAnon mod) */
-    #navigator-toolbox:not(:is(:hover, [zen-expanded="true"], [zen-has-hover])) #zsp-wrap.zsp-open {
+    /* Hide preview when sidebar is collapsed — only if pref is enabled */
+    html.zsp-hide-on-collapse #navigator-toolbox:not(:is(:hover, [zen-expanded="true"], [zen-has-hover])) #zsp-wrap.zsp-open {
       grid-template-rows: 0fr;
       margin: calc(-45px + var(--zsp-mt, 0px)) 6px 0;
     }
@@ -267,6 +285,9 @@
   }
 
   function isSidebarCollapsed() {
+    try {
+      if (!Services.prefs.getBoolPref("mod.zenmediapreview.hide-on-collapse", true)) return false;
+    } catch (_) {}
     const tb = document.querySelector("#navigator-toolbox");
     return tb && !tb.matches(":hover, [zen-expanded='true'], [zen-has-hover]");
   }

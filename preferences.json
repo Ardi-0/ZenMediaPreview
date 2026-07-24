@@ -41,5 +41,11 @@
     "label": "Bottom Padding (px) — expanded player (on hover)",
     "type": "string",
     "defaultValue": "0"
+  },
+  {
+    "property": "mod.zenmediapreview.hide-on-collapse",
+    "label": "Hide preview when sidebar is collapsed",
+    "type": "checkbox",
+    "defaultValue": true
   }
 ]
