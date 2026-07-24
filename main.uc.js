@@ -278,9 +278,7 @@
   let sourceBC = null;
   let _collapseCleanupTimer = null;
   let _visibilityPending = false;
-  const availableSources = new Map();
   const actorRegistry = new Map();
-  const sourceMeta = new Map();
 
   function setAspect(w, h) {
     if (!(w > 0) || !(h > 0)) return;
@@ -311,138 +309,7 @@
     return tb && !tb.matches(":hover, [zen-expanded='true'], [zen-has-hover]");
   }
 
-  function getActiveMediaBC() {
-    try {
-      const service = Cc["@mozilla.org/media/mediacontrolservice;1"].getService();
-      const controller = service.getActiveMediaController();
-      return controller?.browsingContext?.id || null;
-    } catch (_) { return null; }
-  }
 
-  function setMediaPlayerVisible(visible) {
-    const mu = document.querySelector(MUSIC_PLAYER_SELECTORS);
-    if (!mu) return;
-    if (visible) {
-      mu.style.removeProperty("display");
-    } else {
-      mu.style.display = "none";
-    }
-  }
-
-  function isTabMuted(bcId) {
-    try {
-      for (const tab of gBrowser.tabs) {
-        const bc = tab.linkedBrowser?.browsingContext;
-        if (bc && bc.id === bcId) return tab.linkedBrowser.muted;
-      }
-    } catch (_) {}
-    return false;
-  }
-
-  function findAudible() {
-    const activeId = getActiveMediaBC();
-    if (activeId && availableSources.has(activeId) && !isTabMuted(activeId))
-      return availableSources.get(activeId);
-    for (const [id, src] of availableSources)
-      if (!isTabMuted(id)) return src;
-    return null;
-  }
-
-  // Sync preview with the active media controller
-  // Hide the media player when the active controller tab is muted
-  try {
-    const MEDIA_CTRL_TOPIC = "media-controller-changed";
-    Services.obs.addObserver({
-      observe(subject, topic) {
-        if (topic !== MEDIA_CTRL_TOPIC) return;
-        try {
-          const bcId = getActiveMediaBC();
-          if (!bcId) {
-            if (sourceBC) return; // paused, keep the last frame visible
-            return;
-          }
-          if (sourceBC && sourceBC.id === bcId) return;
-          if (isTabMuted(bcId)) {
-            setMediaPlayerVisible(false);
-            const alt = findAudible();
-            if (alt && alt.bc.id !== bcId) {
-              window.ZenPiPController._activateSource(alt.width, alt.height, alt.bc);
-            } else if (sourceBC || isStreaming) {
-              sourceBC = null;
-              isStreaming = false;
-              updateVisibility();
-              safe(() => canvasCtx.clearRect(0, 0, canvas.width, canvas.height));
-            }
-            return;
-          }
-          setMediaPlayerVisible(true);
-          const src = availableSources.get(bcId);
-          if (src) {
-            window.ZenPiPController._activateSource(src.width, src.height, src.bc);
-          } else {
-            sourceBC = null;
-            isStreaming = false;
-            updateVisibility();
-            safe(() => canvasCtx.clearRect(0, 0, canvas.width, canvas.height));
-          }
-        } catch (_) {}
-      }
-    }, MEDIA_CTRL_TOPIC);
-  } catch (e) {
-    err("MediaControlService observer failed:", e);
-  }
-
-  // Handle tab mute/unmute (tab-level mute doesn't fire volumechange on the video element)
-  try {
-    gBrowser.tabContainer.addEventListener("TabAttrModified", (e) => {
-      const changed = e.detail?.changed;
-      if (!changed || !changed.includes("muted")) return;
-      const browser = e.target.linkedBrowser;
-      if (!browser) return;
-      const bcId = browser.browsingContext?.id;
-      if (!bcId) return;
-
-      if (browser.muted) {
-        const src = availableSources.get(bcId);
-        if (!src) return;
-        log("tab muted, stopping source", bcId);
-        const info = actorRegistry.get(bcId);
-        if (info) info.stopTick();
-        availableSources.delete(bcId);
-        if (bcId === getActiveMediaBC()) {
-          setMediaPlayerVisible(false);
-        }
-        if (sourceBC && sourceBC.id === bcId) {
-          sourceBC = null;
-          isStreaming = false;
-          const alt = findAudible();
-          if (alt) {
-            window.ZenPiPController._activateSource(alt.width, alt.height, alt.bc);
-          } else {
-            updateVisibility();
-            safe(() => canvasCtx.clearRect(0, 0, canvas.width, canvas.height));
-          }
-        }
-      } else {
-        if (bcId === getActiveMediaBC()) {
-          setMediaPlayerVisible(true);
-        }
-        if (actorRegistry.has(bcId) && !availableSources.has(bcId)) {
-          const meta = sourceMeta.get(bcId);
-          if (meta) {
-            log("tab unmuted, re-adding source", bcId);
-            const bc = browser.browsingContext;
-            availableSources.set(bcId, { bc, width: meta.width, height: meta.height });
-            const info = actorRegistry.get(bcId);
-            if (info) info.startTick(info.win || window);
-            if (!sourceBC || (bcId === getActiveMediaBC() && sourceBC.id !== bcId)) {
-              window.ZenPiPController._activateSource(meta.width, meta.height, bc);
-            }
-          }
-        }
-      }
-    });
-  } catch (_) {}
 
   function updateVisibility() {
     if (_visibilityPending) return;
@@ -512,34 +379,14 @@
       actorRegistry.delete(id);
     },
     offerVideo(width, height, browsingContext) {
-      const id = browsingContext.id;
-      sourceMeta.set(id, { width, height });
-      availableSources.set(id, { bc: browsingContext, width, height });
-      // If this source is the active media controller, show the media player
-      if (id === getActiveMediaBC()) {
-        setMediaPlayerVisible(true);
-      }
-      // Only auto-activate if no current source, or this IS the active media session
-      if (!sourceBC || id === getActiveMediaBC()) {
-        this._activateSource(width, height, browsingContext);
-      }
+      this._activateSource(width, height, browsingContext);
     },
     notifySourceStopped(bc) {
-      sourceMeta.delete(bc.id);
-      availableSources.delete(bc.id);
-      if (bc.id === getActiveMediaBC()) {
-        setMediaPlayerVisible(false);
-      }
       if (sourceBC && sourceBC.id === bc.id) {
         sourceBC = null;
         isStreaming = false;
-        const alt = findAudible();
-        if (alt) {
-          window.ZenPiPController._activateSource(alt.width, alt.height, alt.bc);
-        } else {
-          updateVisibility();
-          safe(() => canvasCtx.clearRect(0, 0, canvas.width, canvas.height));
-        }
+        updateVisibility();
+        safe(() => canvasCtx.clearRect(0, 0, canvas.width, canvas.height));
       }
     },
     _activateSource(width, height, browsingContext) {
